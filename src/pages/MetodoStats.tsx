@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import HeroStatsCards from '../components/HeroStatsCards';
+import HeroStatsCards from '../components/hero/HeroStatsCards';
 import HeaderTitle from '../components/ui/HeaderTitle';
-import ScrollReveal from '../components/ScrollReveal';
+import ScrollReveal from '../components/shared/ScrollReveal';
 import TitleHighlightReverse from '../components/ui/TitleHighlightReverse';
 import { useCountUp } from '../hooks/useCountUp';
-import { usuarios } from './Resultados';
+import { usuarios } from '../features/resultados/data';
 
 const roiMedio = usuarios.reduce((acc, u) => acc + (u.beneficioTotal / u.inversion) * 100, 0) / usuarios.length;
 const gananciaTotal = usuarios.reduce((acc, u) => acc + u.beneficioTotal, 0);

@@ -1,17 +1,7 @@
 import { Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import ScrollReveal from './ScrollReveal';
-
-export interface PricingPlan {
-  name: string;
-  icon: React.ComponentType<{ className?: string }>;
-  price: string;
-  description: string;
-  features: string[];
-  content?: string[];
-  highlighted: boolean;
-  recommended: boolean;
-}
+import type { PricingPlan } from '../../features/pricing/types';
+import ScrollReveal from '../shared/ScrollReveal';
 
 interface Props {
   plans: PricingPlan[];
@@ -94,6 +84,10 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
             aria-label={`Ir a tarjeta ${idx + 1}`}
           />
         ))}
+      </div>
+
+      <div className="mb-4 text-center text-xs font-semibold tracking-wide text-white/80 md:hidden">
+        Auto swipe: {Math.min(autoSwipeCount, MAX_AUTO_SWIPES)}/{MAX_AUTO_SWIPES}
       </div>
 
       <div className="md:hidden overflow-hidden pt-3 sm:pt-4 pb-2">

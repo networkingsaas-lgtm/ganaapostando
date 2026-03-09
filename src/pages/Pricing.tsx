@@ -1,8 +1,9 @@
-import { Check, Zap, BookOpen, FileSpreadsheet, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import ScrollReveal from '../components/ScrollReveal';
+import ScrollReveal from '../components/shared/ScrollReveal';
 import HeaderTitle from '../components/ui/HeaderTitle';
-import PricingMobileSwiper, { type PricingPlan } from '../components/PricingMobileSwiper';
+import PricingMobileSwiper from '../components/pricing/PricingMobileSwiper';
+import { pricingPlans } from '../features/pricing/plans';
 
 export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: number }) {
   const [planModal, setPlanModal] = useState<null | { name: string; content: string[] }>(null);
@@ -15,91 +16,7 @@ export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: num
     const t2 = setTimeout(() => setAnimClass(''), 3500);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [flashButtonsKey]);
-  const plans: PricingPlan[] = [
-    {
-      name: 'Plan Autodidacta',
-      icon: FileSpreadsheet,
-      price: '79',
-      description: '⚠️ Sin clases ni soporte. Recibes los recursos y operas completamente por tu cuenta.',
-      features: [
-        'Excel de seguimiento de apuestas (el mismo que usan nuestros alumnos)',
-        'Calculadora de cálculo de value bets y EV esperado',
-        'Calculadora de stake y gestión de bankroll',
-        'Lista de casas de apuestas recomendadas y cuáles evitar',
-        'Lista de herramientas y escáneres de cuotas que debes usar',
-        '❌ Sin clases ni formación',
-        '❌ Sin soporte ni ayuda personalizada',
-        '❌ Trabajas completamente solo',
-      ],
-      highlighted: false,
-      recommended: false,
-    },
-    {
-      name: 'Plan Activo',
-      icon: BookOpen,
-      price: '197',
-      description: 'Aprende nuestra metodología de inversión en apuestas deportivas.',
-      features: [
-        '+ Todo lo incluido en Autodidacta',
-        '🎥 10 horas de contenido formativo (vídeos + materiales)',
-        '📅 2 clases online en directo para dudas y cuestiones',
-        '📚 Acceso a todas las guías y materiales del curso',
-        
-      ],
-      content: [
-        'Fundamentos del Matched Betting desde cero',
-        'Cómo identificar y aprovechar los bonos de bienvenida',
-        'Matched betting con apuestas free bet y reembolsos',
-        'Value Betting: qué es y cómo detectar cuotas con valor',
-        'Cómo calcular el EV (valor esperado) de una apuesta',
-        'Qué casas de apuestas usar y cuáles evitar',
-        'Mejores herramientas y escáneres de cuotas del mercado',
-        'Gestión de bankroll y control de varianza',
-        'Estrategia de apuestas a largo plazo',
-        'Errores más comunes y cómo evitarlos',
-      ],
-      highlighted: false,
-      recommended: true,
-    },
-    {
-      name: 'Plan Profesional',
-      icon: Zap,
-      price: '297',
-      description: 'Dominio avanzado de Value Betting, Trading Deportivo y nuevas técnicas. Para quien quiere llevar las apuestas al siguiente nivel.',
-      features: [
-        '+ Todo lo incluido en Metodología Activa',
-        '🎥 20 horas de contenido avanzado (vídeos + materiales)',
-        '📅 4 clases online en directo para dudas y casos reales',
-        'Apuesta con nosotros en directo cada semana',
-      ],
-      content: [
-        '— VALUE BETTING AVANZADO —',
-        'Modelo matemático de detección de value bets',
-        'Cómo construir tu propio modelo de probabilidades',
-        'Comparación de cuotas entre bookmakers: herramientas profesionales',
-        'Análisis de mercados líquidos vs ilíquidos',
-        'Gestión de stakes según Kelly Criterion',
-        'Control de varianza y drawdown a largo plazo',
-        'Cómo leer el movimiento de líneas y qué señala',
-        'Seguimiento y análisis de resultados con estadística real',
-        '— TRADING DEPORTIVO —',
-        'Qué es el trading deportivo y en qué se diferencia del betting',
-        'Plataformas de trading: Betfair, Smarkets y cómo usarlas',
-        'Estrategias de trading en mercados pre-partido',
-        'Trading en directo (in-play): oportunidades y riesgos',
-        'Scalping y swing trading en apuestas deportivas',
-        'Gestión de posiciones abiertas y cómo cerrar con beneficio',
-        '— NUEVAS TÉCNICAS —',
-        'Arbitraje deportivo: cómo detectar y ejecutar arbs',
-        'Bonus abuse avanzado y técnicas de reload',
-        'Apuestas a mercados alternativos de alto valor',
-        'Automatización y uso de bots de forma legal',
-        'Construcción de un sistema de apuestas sostenible',
-      ],
-      highlighted: true,
-      recommended: false,
-    },
-  ];
+  const plans = pricingPlans;
 
   return (
     <section id="pricing" className="py-12 sm:py-20 section-padding">

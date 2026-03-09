@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import Hero from './page/Hero';
-import Aprender from './page/Aprender';
-import MetodoStats from './page/MetodoStats';
-import Estudiante from './page/Estudiante';
-import Pricing from './page/Pricing';
-import CTA from './page/CTA';
-import Resultados from './page/Resultados';
+import Hero from './pages/Hero';
+import Aprender from './pages/Aprender';
+import MetodoStats from './pages/MetodoStats';
+import Estudiante from './pages/Estudiante';
+import Pricing from './pages/Pricing';
+import CTA from './pages/CTA';
+import Resultados from './pages/Resultados';
 
 function App() {
   const [pagina, setPagina] = useState<'home' | 'resultados'>('home');

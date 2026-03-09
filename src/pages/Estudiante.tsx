@@ -1,25 +1,8 @@
 import HeaderTitle from '../components/ui/HeaderTitle';
-import MedievalBannerCards, { type MedievalBannerCard } from '../components/estudiante/MedievalBannerCards';
+import MedievalBannerCards from '../components/estudiante/MedievalBannerCards';
+import { estudianteCards } from '../features/estudiante/cards';
 
 export default function Estudiante() {
-  const cards: MedievalBannerCard[] = [
-    {
-      step: '01',
-      title: 'Aprende a hacer MATCHED BETTING',
-      text: 'Empiezas por una estrategia guiada para sacar rentabilidad controlada desde el primer bloque.',
-    },
-    {
-      step: '02',
-      title: 'Aprende a hacer VALUEBETS',
-      text: 'Aprendes a detectar apuestas con valor esperado positivo y a evitar tiros emocionales.',
-    },
-    {
-      step: '03',
-      title: 'Aprende a entender este VOCABULARIO FRIKI',
-      text: 'Te traducimos cada termino tecnico a lenguaje simple para que lo apliques sin perderte.',
-    },
-  ];
-
   return (
     <section className="bg-white py-12 sm:py-20 section-padding">
       <div className="max-w-7xl mx-auto">
@@ -36,7 +19,7 @@ export default function Estudiante() {
           </p>
         </div>
 
-        <MedievalBannerCards cards={cards} />
+        <MedievalBannerCards cards={estudianteCards} />
       </div>
     </section>
   );

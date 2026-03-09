@@ -1,5 +1,5 @@
-import PageReveal from '../components/PageReveal';
-import CasasCarrusel from '../components/CasasCarrusel';
+import PageReveal from '../components/shared/PageReveal';
+import CasasCarrusel from '../components/hero/CasasCarrusel';
 import HeaderTitle from '../components/ui/HeaderTitle';
 
 interface Props {
