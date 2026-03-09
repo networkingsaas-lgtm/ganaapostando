@@ -28,7 +28,7 @@ export default function MetodoStats() {
             <TitleHighlightReverse inverted>Deja de pensar</TitleHighlightReverse> "si sale 3 veces seguidas negro <TitleHighlightReverse inverted>la siguiente saldrá rojo </TitleHighlightReverse>"
           </HeaderTitle>
           <p className="text-base sm:text-xl text-white/85">
-            por algo nuestros alumnos han ganado tanto dinero, no hay truco, es El método.
+            por algo nuestros alumnos han ganado taaaanto dinero, no hay truco, es <span className="rebel-underline"> El método.</span>
           </p>
         </div>
 

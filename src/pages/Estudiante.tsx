@@ -15,7 +15,7 @@ export default function Estudiante() {
             <span className="title-span-highlight">Eres estudiante</span> y no te llega ni para gasolina?
           </HeaderTitle>
           <p className="text-base sm:text-xl text-slate-600">
-            Si te organizas bien, puedes aprender un metodo real para generar ingresos sin depender del azar.
+            Si te organizas bien, puedes aprender <span className="rebel-underline"> El método.</span> real para generar ingresos sin depender del azar.
           </p>
         </div>
 

@@ -21,7 +21,7 @@ export const pricingPlans: PricingPlan[] = [
     recommended: false,
   },
   {
-    name: 'Plan Activo',
+    name: 'El Método.',
     icon: BookOpen,
     price: '197',
     description: 'Aprende nuestra metodologia de inversion en apuestas deportivas.',
@@ -43,8 +43,8 @@ export const pricingPlans: PricingPlan[] = [
       'Estrategia de apuestas a largo plazo',
       'Errores mas comunes y como evitarlos',
     ],
-    highlighted: false,
-    recommended: true,
+    highlighted: true,
+    recommended: false,
   },
   {
     name: 'Plan Profesional',
@@ -81,7 +81,7 @@ export const pricingPlans: PricingPlan[] = [
       'Automatizacion y uso de bots de forma legal',
       'Construccion de un sistema de apuestas sostenible',
     ],
-    highlighted: true,
-    recommended: false,
+    highlighted: false,
+    recommended: true,
   },
 ];

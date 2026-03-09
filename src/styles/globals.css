@@ -209,3 +209,36 @@ html, body {
 .orb-1 { animation: orb-float-1 12s ease-in-out infinite; }
 .orb-2 { animation: orb-float-2 15s ease-in-out infinite; }
 .orb-3 { animation: orb-float-3 18s ease-in-out infinite; }
+
+.rebel-underline {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.08em;
+  isolation: isolate;
+}
+
+.rebel-underline::after {
+  content: '';
+  position: absolute;
+  left: -1%;
+  bottom: 0.08em;
+  width: 102%;
+  height: 0.28em;
+  background: #ef4444;
+  border-radius: 2px;
+  transform: rotate(-1.8deg) skewX(-18deg);
+  filter: drop-shadow(0 1px 1px rgba(239, 68, 68, 0.32));
+  pointer-events: none;
+  z-index: -1;
+}
+
+@media (min-width: 640px) {
+  .rebel-underline {
+    padding-bottom: 0.1em;
+  }
+
+  .rebel-underline::after {
+    bottom: 0.1em;
+    height: 0.34em;
+  }
+}

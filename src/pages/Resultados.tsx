@@ -52,7 +52,7 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
             Resultados <span className="text-blue-400">Verificados</span>
           </HeaderTitle>
           <p className="body-text text-gray-300 max-w-2xl">
-            Evolución real de beneficios de nuestros alumnos aplicando el método matemático.
+            Evolución real de beneficios de nuestros alumnos aplicando <span className="rebel-underline"> El método.</span>
           </p>
         </div>
       </PageReveal>

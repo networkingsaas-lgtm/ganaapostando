@@ -19,7 +19,7 @@ export default function Hero({ onVerResultados }: Props) {
 
           <PageReveal delay={180}>
             <p className="body-text text-white/90 max-w-3xl mx-auto">
-              Aprende El método.
+              Aprende <span className="rebel-underline"> El método.</span>
             </p>
           </PageReveal>
 
