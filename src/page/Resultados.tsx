@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PageReveal from '../components/PageReveal';
-import { TrendingUp, Users, BarChart2, DollarSign, ArrowLeft, Building2 } from 'lucide-react';
+import HeaderTitle from '../components/ui/HeaderTitle';
+import { TrendingUp, BarChart2, DollarSign, ArrowLeft, Building2 } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -120,7 +121,7 @@ export const usuarios: Usuario[] = [
 ],
   apuestasValues: [1, 7, 13, 19, 25, 31, 37, 43, 49, 55, 61, 67, 73, 79, 85, 91, 97, 103, 109, 115, 121, 127, 133, 139, 145, 151, 157, 163, 168, 173],
   beneficioTotal: 1091.24,
-  inversion: 1000,
+  inversion: 1400,
   nCasasApuestas: 11,
 },
 {
@@ -316,6 +317,7 @@ interface Props {
 export default function Resultados({ onVolver, onVerPricing }: Props) {
   const [seleccionado, setSeleccionado] = useState<Usuario>(usuarios[0]);
   const [ejeX, setEjeX] = useState<EjeX>('tiempo');
+  const [panelAbierto, setPanelAbierto] = useState(true);
 
   const datosGrafico = seleccionado.beneficioValues.map((b, i) => ({
     label:
@@ -326,9 +328,9 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
   }));
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Header */}
-      <PageReveal direction="down" delay={30} className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white py-10 sm:py-16 section-padding">
+      <PageReveal direction="down" delay={30} className="hero-startup-bg text-white py-10 sm:py-16 section-padding">
         <div className="max-w-7xl mx-auto">
           <button
             onClick={onVolver}
@@ -337,13 +339,10 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
             <ArrowLeft className="w-4 h-4" />
             Volver
           </button>
-          <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-400/30 rounded-full px-4 py-2 text-sm mb-4">
-            <Users className="w-4 h-4" />
-            <span>Casos Reales de Alumnos</span>
-          </div>
-          <h1 className="heading-lg sm:heading-xl font-bold leading-tight mb-3">
+          
+          <HeaderTitle as="h1" className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-[0.95] mb-3">
             Resultados <span className="text-blue-400">Verificados</span>
-          </h1>
+          </HeaderTitle>
           <p className="body-text text-gray-300 max-w-2xl">
             Evolución real de beneficios de nuestros alumnos aplicando el método matemático.
           </p>
@@ -351,19 +350,36 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
       </PageReveal>
 
       {/* Contenido principal */}
-      <PageReveal direction="up" delay={200} className="max-w-7xl mx-auto section-padding py-8 sm:py-12">
+      <PageReveal direction="down" delay={200} className="max-w-7xl mx-auto section-padding py-8 sm:py-12">
 
         {/* Layout: lista + gráfico + stats */}
         <div className="grid grid-cols-1 lg:grid-cols-[256px_1fr] gap-6">
 
           {/* Lista de usuarios */}
           <div className="flex flex-col">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Alumnos</h2>
-            <div className="space-y-2 overflow-y-auto max-h-[300px] lg:max-h-[600px] pr-1">
+            {/* Header del panel con toggle en móvil */}
+            <button
+              className="flex items-center justify-between lg:cursor-default mb-3"
+              onClick={() => setPanelAbierto(o => !o)}
+            >
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                {panelAbierto ? 'Alumnos' : `Alumno: ${seleccionado.nombre}`}
+              </h2>
+              <span className={`lg:hidden text-gray-400 transition-transform duration-300 ${panelAbierto ? 'rotate-180' : ''}`}>
+                ▲
+              </span>
+            </button>
+            <div className={`space-y-2 overflow-y-auto pr-1 transition-all duration-300 ${
+              panelAbierto ? 'max-h-[300px] lg:max-h-[600px] opacity-100' : 'max-h-0 lg:max-h-[600px] opacity-0 lg:opacity-100 overflow-hidden'
+            }`}>
               {usuarios.map((u) => (
                 <button
                   key={u.id}
-                  onClick={() => setSeleccionado(u)}
+                  onClick={() => {
+                    setSeleccionado(u);
+                    // En móvil, plegar el panel al seleccionar
+                    if (window.innerWidth < 1024) setPanelAbierto(false);
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left ${
                     seleccionado.id === u.id
                       ? 'border-blue-500 bg-blue-50 shadow-md'
@@ -386,42 +402,96 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
             </div>
           </div>
 
-          {/* Gráfico + Stats */}
+          {/* Stats + Gráfico */}
           <div className="flex-1 flex flex-col gap-6">
+
+          {/* Stats del usuario seleccionado */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              {
+                label: 'Inversión',
+                value: `€${seleccionado.inversion.toLocaleString()}`,
+                icon: DollarSign,
+                color: 'text-blue-500',
+                bg: 'bg-blue-50',
+                mobileVisible: true,
+              },
+              {
+                label: 'Nº Apuestas',
+                value: seleccionado.apuestasValues[seleccionado.apuestasValues.length - 1],
+                icon: BarChart2,
+                color: 'text-purple-500',
+                bg: 'bg-purple-50',
+                mobileVisible: false,
+              },
+              {
+                label: 'ROI',
+                value: `${((seleccionado.beneficioTotal / seleccionado.inversion) * 100).toFixed(2)}%`,
+                icon: TrendingUp,
+                color: 'text-green-500',
+                bg: 'bg-green-50',
+                mobileVisible: false,
+              },
+              {
+                label: 'Beneficio Total',
+                value: `€${seleccionado.beneficioTotal.toLocaleString()}`,
+                icon: TrendingUp,
+                color: 'text-yellow-500',
+                bg: 'bg-yellow-50',
+                mobileVisible: true,
+              },
+              {
+                label: 'Casas de Apuestas',
+                value: seleccionado.nCasasApuestas,
+                icon: Building2,
+                color: 'text-orange-500',
+                bg: 'bg-orange-50',
+                mobileVisible: false,
+              },
+            ].map((stat, i) => (
+              <div key={i} className={`bg-white rounded-2xl p-5 border border-gray-200 shadow-sm ${stat.mobileVisible ? '' : 'hidden sm:block'}`}>
+                <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3`}>
+                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                </div>
+                <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{stat.value}</p>
+              </div>
+            ))}
+          </div>
 
           {/* Gráfico */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">{seleccionado.nombre}</h2>
-                <p className="text-sm text-gray-500">Evolución de beneficios</p>
+            <div className="flex items-center justify-between mb-6 gap-3">
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 truncate">{seleccionado.nombre}</h2>
+                <p className="text-sm text-gray-500 break-words">Evolución de beneficios</p>
               </div>
-              {/* Toggle eje X */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {/* Controles: Ver Excel + Toggle eje X */}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={onVerPricing}
-                  className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-yellow-400 hover:bg-yellow-500 text-yellow-900 transition-all shadow"
+                  className="py-2 px-4 sm:px-5 rounded-lg text-sm sm:text-base font-semibold bg-yellow-400 hover:bg-yellow-500 text-yellow-900 transition-all shadow whitespace-nowrap"
                 >
                   Ver Excel
                 </button>
-                <div className="flex items-center bg-gray-100 rounded-lg p-1 gap-1">
-                <button
-                  onClick={() => setEjeX('tiempo')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    ejeX === 'tiempo' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Tiempo
-                </button>
-                <button
-                  onClick={() => setEjeX('apuestas')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    ejeX === 'apuestas' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Apuestas
-                </button>
-              </div>
+                <div className="flex items-center bg-gray-100 rounded-lg p-1.5 gap-1 w-36 sm:w-48">
+                  <button
+                    onClick={() => setEjeX('tiempo')}
+                    className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${
+                      ejeX === 'tiempo' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Tiempo
+                  </button>
+                  <button
+                    onClick={() => setEjeX('apuestas')}
+                    className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${
+                      ejeX === 'apuestas' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Apuestas
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -473,55 +543,6 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
                 />
               </LineChart>
             </ResponsiveContainer>
-          </div>
-
-          {/* Stats del usuario seleccionado */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            {[
-              {
-                label: 'Inversión',
-                value: `€${seleccionado.inversion.toLocaleString()}`,
-                icon: DollarSign,
-                color: 'text-blue-500',
-                bg: 'bg-blue-50',
-              },
-              {
-                label: 'Nº Apuestas',
-                value: seleccionado.apuestasValues[seleccionado.apuestasValues.length - 1],
-                icon: BarChart2,
-                color: 'text-purple-500',
-                bg: 'bg-purple-50',
-              },
-              {
-                label: 'ROI',
-                value: `${((seleccionado.beneficioTotal / seleccionado.inversion) * 100).toFixed(2)}%`,
-                icon: TrendingUp,
-                color: 'text-green-500',
-                bg: 'bg-green-50',
-              },
-              {
-                label: 'Beneficio Total',
-                value: `€${seleccionado.beneficioTotal.toLocaleString()}`,
-                icon: TrendingUp,
-                color: 'text-yellow-500',
-                bg: 'bg-yellow-50',
-              },
-              {
-                label: 'Casas de Apuestas',
-                value: seleccionado.nCasasApuestas,
-                icon: Building2,
-                color: 'text-orange-500',
-                bg: 'bg-orange-50',
-              },
-            ].map((stat, i) => (
-              <div key={i} className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
-                <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3`}>
-                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
-                <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">{stat.value}</p>
-              </div>
-            ))}
           </div>
 
           </div>

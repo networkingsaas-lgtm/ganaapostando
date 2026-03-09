@@ -1,4 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
 @import "tailwindcss";
+
+:root {
+  --hero-startup-bg:
+    radial-gradient(62% 68% at 82% 16%, rgba(91, 194, 255, 0.36) 0%, rgba(91, 194, 255, 0) 58%),
+    radial-gradient(70% 90% at 14% 18%, rgba(22, 96, 255, 0.45) 0%, rgba(22, 96, 255, 0) 64%),
+    linear-gradient(165deg, rgba(156, 222, 255, 0.32) 0 1px, rgba(156, 222, 255, 0) 1px 16px),
+    linear-gradient(165deg, rgba(72, 169, 255, 0.28) 0 2px, rgba(72, 169, 255, 0) 2px 26px),
+    radial-gradient(68% 74% at 8% 100%, rgba(4, 20, 124, 0.95) 0%, rgba(4, 20, 124, 0) 70%),
+    radial-gradient(58% 66% at 100% 84%, rgba(76, 36, 188, 0.52) 0%, rgba(76, 36, 188, 0) 62%),
+    linear-gradient(142deg, #020b4a 0%, #041a78 32%, #0a2f9f 62%, #13277a 100%);
+
+  --hero-startup-bg-highlight:
+    radial-gradient(62% 68% at 82% 16%, rgba(91, 194, 255, 0.36) 0%, rgba(91, 194, 255, 0) 58%),
+    radial-gradient(70% 90% at 14% 18%, rgba(22, 96, 255, 0.45) 0%, rgba(22, 96, 255, 0) 64%),
+    linear-gradient(142deg, #020b4a 0%, #041a78 32%, #0a2f9f 62%, #13277a 100%);
+}
+
+.startup-font {
+  font-family: 'Sora', 'Segoe UI', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.rebel-font {
+  font-family: 'Teko', 'Arial Narrow', sans-serif;
+  letter-spacing: 0.03em;
+}
+
+.hero-impact-font {
+  font-family: 'Anton', 'Teko', 'Arial Narrow', sans-serif;
+  letter-spacing: 0.015em;
+  line-height: 0.95;
+}
+
+.title-span-highlight {
+  position: relative;
+  display: inline-block;
+  color: #ffffff;
+  padding: 0.14em 0.22em;
+  z-index: 0;
+}
+
+.title-span-highlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--hero-startup-bg-highlight);
+  transform: skewX(-12deg);
+  transform-origin: center;
+  z-index: -1;
+}
+
+.title-span-highlight-invert::before {
+  transform: skewX(12deg);
+}
+
+.title-span-highlight-reverse {
+  color: #041a78;
+}
+
+.title-span-highlight-reverse::before {
+  background: #ffffff;
+}
+
+.title-span-highlight-reverse-invert::before {
+  transform: skewX(12deg);
+}
+
+.hero-startup-bg {
+  background: var(--hero-startup-bg);
+}
+
+.startup-fixed-bg {
+  background-attachment: fixed;
+  background-size: cover;
+}
 
 /* ===== RESPONSIVE GLOBAL ===== */
 html, body {
@@ -107,6 +185,19 @@ html, body {
 @keyframes gradient-shift {
   0%, 100% { background-position: 0% 50%; }
   50%       { background-position: 100% 50%; }
+}
+
+@keyframes btn-pulse-gold {
+  0%        { transform: scale(1);    background-color: inherit; box-shadow: none; }
+  20%       { transform: scale(1.10); background-color: #f59e0b; color: #78350f; box-shadow: 0 0 0 4px rgba(245,158,11,0.45), 0 6px 20px rgba(245,158,11,0.35); }
+  40%       { transform: scale(1.06); background-color: #fbbf24; color: #92400e; box-shadow: 0 0 0 2px rgba(251,191,36,0.25); }
+  60%       { transform: scale(1.10); background-color: #f59e0b; color: #78350f; box-shadow: 0 0 0 4px rgba(245,158,11,0.45), 0 6px 20px rgba(245,158,11,0.35); }
+  80%       { transform: scale(1.05); background-color: #fbbf24; color: #92400e; }
+  100%      { transform: scale(1);    background-color: inherit; box-shadow: none; }
+}
+
+.btn-pulse-gold {
+  animation: btn-pulse-gold 1.4s ease-in-out;
 }
 
 .hero-bg {

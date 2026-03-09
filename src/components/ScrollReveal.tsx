@@ -5,9 +5,10 @@ interface Props {
   children: ReactNode;
   className?: string;
   delay?: number; // ms
+  onReveal?: () => void;
 }
 
-export default function ScrollReveal({ children, className = '', delay = 0 }: Props) {
+export default function ScrollReveal({ children, className = '', delay = 0, onReveal }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -19,6 +20,7 @@ export default function ScrollReveal({ children, className = '', delay = 0 }: Pr
         if (entry.isIntersecting) {
           setTimeout(() => {
             el.classList.add('sr-visible');
+            onReveal?.();
           }, delay);
           observer.unobserve(el);
         }
@@ -28,7 +30,7 @@ export default function ScrollReveal({ children, className = '', delay = 0 }: Pr
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [delay]);
+  }, [delay, onReveal]);
 
   return (
     <div ref={ref} className={`sr-hidden ${className}`}>

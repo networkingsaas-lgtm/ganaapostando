@@ -1,10 +1,21 @@
 import { Check, Zap, BookOpen, FileSpreadsheet, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ScrollReveal from '../components/ScrollReveal';
+import HeaderTitle from '../components/ui/HeaderTitle';
+import PricingMobileSwiper, { type PricingPlan } from '../components/PricingMobileSwiper';
 
-export default function Pricing() {
+export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: number }) {
   const [planModal, setPlanModal] = useState<null | { name: string; content: string[] }>(null);
-  const plans = [
+  const [animClass, setAnimClass] = useState('');
+
+  useEffect(() => {
+    if (flashButtonsKey === 0) return;
+    setAnimClass('');
+    const t1 = setTimeout(() => setAnimClass('btn-pulse-gold'), 10);
+    const t2 = setTimeout(() => setAnimClass(''), 3500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [flashButtonsKey]);
+  const plans: PricingPlan[] = [
     {
       name: 'Plan Autodidacta',
       icon: FileSpreadsheet,
@@ -91,25 +102,32 @@ export default function Pricing() {
   ];
 
   return (
-    <section id="pricing" className="py-12 sm:py-20 section-padding bg-gray-50">
+    <section id="pricing" className="py-12 sm:py-20 section-padding">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-10 sm:mb-16">
-          <h2 className="heading-lg sm:heading-xl font-bold text-gray-900 mb-4">
+          <HeaderTitle
+            as="h2"
+            uppercase={true}
+            lineHeightClass="leading-tight"
+            className="heading-lg sm:heading-xl font-bold text-white mb-4"
+          >
             Invierte en Tu Educación
-          </h2>
-          <p className="body-text text-gray-600 max-w-3xl mx-auto">
+          </HeaderTitle>
+          <p className="body-text text-white/85 max-w-3xl mx-auto">
             Elige el nivel que mejor se adapte a tus objetivos.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+        <PricingMobileSwiper plans={plans} animClass={animClass} onOpenPlan={setPlanModal} />
+
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 pt-6 sm:pt-7 pb-0">
           {plans.map((plan, index) => (
             <ScrollReveal key={index} delay={index * 150} className="w-full">
             <div
               className={`relative rounded-2xl p-5 sm:p-8 transition-all ${
                 plan.highlighted
                   ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-2xl lg:scale-105 border-4 border-blue-400'
-                  : 'bg-white border-2 border-gray-200 hover:border-blue-300 hover:shadow-xl'
+                  : 'bg-white border-4 border-gray-200 hover:border-blue-300 hover:shadow-xl'
               }`}
             >
               {plan.highlighted && (
@@ -165,7 +183,8 @@ export default function Pricing() {
                   plan.highlighted
                     ? 'bg-white text-blue-600 hover:bg-gray-100'
                     : 'bg-blue-500 text-white hover:bg-blue-600'
-                }`}
+                } ${animClass}`}
+                style={animClass ? { animationDelay: `${0.9 + index * 0.15}s` } : undefined}
               >
                 Comenzar Ahora
               </a>
@@ -192,7 +211,7 @@ export default function Pricing() {
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-gray-600 mb-4">
+          <p className="text-white/80 mb-4">
             ¿No estás seguro? Mira casos de éxito reales y testimonios de estudiantes antes de decidir. Tu inversión en educación es la mejor apuesta que puedes hacer.
           </p>
         </div>
