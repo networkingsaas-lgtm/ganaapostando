@@ -1,5 +1,5 @@
 import { Check, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ScrollReveal from './ScrollReveal';
 
 export interface PricingPlan {
@@ -19,8 +19,12 @@ interface Props {
   onOpenPlan: (plan: { name: string; content: string[] }) => void;
 }
 
+const MAX_AUTO_SWIPES = 3;
+
 export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Props) {
   const [activeCard, setActiveCard] = useState(0);
+  const [autoSwipeCount, setAutoSwipeCount] = useState(0);
+  const [autoplayEnabled, setAutoplayEnabled] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
@@ -36,18 +40,45 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
   };
 
   const onTouchEnd = () => {
-    if (touchStartX === null || touchEndX === null) return;
+    if (touchStartX === null || touchEndX === null || plans.length === 0) return;
     const delta = touchStartX - touchEndX;
     const isSwipeLeft = delta > minSwipeDistance;
     const isSwipeRight = delta < -minSwipeDistance;
 
-    if (isSwipeLeft && activeCard < plans.length - 1) {
-      setActiveCard((prev) => prev + 1);
+    if (isSwipeLeft) {
+      setActiveCard((prev) => (prev + 1) % plans.length);
     }
-    if (isSwipeRight && activeCard > 0) {
-      setActiveCard((prev) => prev - 1);
+    if (isSwipeRight) {
+      setActiveCard((prev) => (prev - 1 + plans.length) % plans.length);
     }
   };
+
+  useEffect(() => {
+    setAutoSwipeCount(0);
+    setActiveCard(0);
+    setAutoplayEnabled(false);
+  }, [plans.length]);
+
+  useEffect(() => {
+    if (!autoplayEnabled || plans.length <= 1) return;
+
+    let swipeCount = 0;
+
+    const intervalId = window.setInterval(() => {
+      swipeCount += 1;
+      setAutoSwipeCount(swipeCount);
+
+      if (swipeCount >= MAX_AUTO_SWIPES) {
+        setActiveCard(0);
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      setActiveCard((prev) => (prev + 1) % plans.length);
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [autoplayEnabled, plans.length]);
 
   return (
     <>
@@ -75,7 +106,11 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
         >
           {plans.map((plan, index) => (
             <div key={index} className="w-full flex-shrink-0 px-1">
-              <ScrollReveal delay={index * 120} className="w-full">
+              <ScrollReveal
+                delay={index * 120}
+                className="w-full"
+                onReveal={index === 0 ? () => setAutoplayEnabled(true) : undefined}
+              >
                 <div
                   className={`relative rounded-2xl p-5 transition-all ${
                     plan.highlighted
