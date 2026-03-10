@@ -58,26 +58,43 @@ export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: num
                 </div>
               )}
 
-              <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 ${
-                plan.highlighted ? 'bg-white/20' : 'bg-blue-100'
-              }`}>
-                <plan.icon className={`w-7 h-7 ${plan.highlighted ? 'text-white' : 'text-blue-500'}`} />
-              </div>
-
               <h3 className={`heading-md font-bold mb-2 ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
-                {plan.name === 'El Método.' ? <span className="rebel-underline">{plan.name}</span> : plan.name}
+                {plan.name.includes('El Método') ? (
+                  <>
+                    {plan.name.split('El Método')[0]}
+                    <span className="rebel-underline">El Método</span>
+                    {plan.name.split('El Método')[1]}
+                  </>
+                ) : (
+                  plan.name
+                )}
               </h3>
+
+              <div className="mb-6">
+                {plan.name === 'El Método, plus' ? (
+                  <>
+                    <span className={`text-3xl sm:text-5xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
+                      €***
+                    </span>
+                    <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}> / pago único</span>
+                  </>
+                ) : /^\d+(?:[.,]\d+)?$/.test(plan.price) ? (
+                  <>
+                    <span className={`text-3xl sm:text-5xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
+                      €{plan.price}
+                    </span>
+                    <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}> / pago único</span>
+                  </>
+                ) : (
+                  <span className={`text-2xl sm:text-3xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
+                    {plan.price}
+                  </span>
+                )}
+              </div>
 
               <p className={`text-sm mb-6 ${plan.highlighted ? 'text-blue-100' : 'text-gray-600'}`}>
                 {plan.description}
               </p>
-
-              <div className="mb-6">
-                <span className={`text-3xl sm:text-5xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
-                  €{plan.price}
-                </span>
-                <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}> / pago único</span>
-              </div>
 
               {'content' in plan && (
                 <button
