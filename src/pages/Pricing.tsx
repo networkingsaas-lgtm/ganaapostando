@@ -25,7 +25,7 @@ export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: num
           <HeaderTitle
             as="h2"
             uppercase={true}
-            lineHeightClass="leading-tight"
+            lineHeightClass="leading-[1.12] sm:leading-[1.06]"
             className="heading-lg sm:heading-xl font-bold text-white mb-4"
           >
             Invierte en Tu Educación
@@ -65,7 +65,7 @@ export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: num
               </div>
 
               <h3 className={`heading-md font-bold mb-2 ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
-                {plan.name}
+                {plan.name === 'El Método.' ? <span className="rebel-underline">{plan.name}</span> : plan.name}
               </h3>
 
               <p className={`text-sm mb-6 ${plan.highlighted ? 'text-blue-100' : 'text-gray-600'}`}>

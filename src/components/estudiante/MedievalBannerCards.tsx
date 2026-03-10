@@ -5,11 +5,27 @@ interface Props {
   cards: EstudianteCard[];
 }
 
+function renderTitleWithHighlight(title: string, highlightText?: string) {
+  if (!highlightText) return title;
+
+  const start = title.indexOf(highlightText);
+  if (start === -1) return title;
+
+  const end = start + highlightText.length;
+  return (
+    <>
+      {title.slice(0, start)}
+      <span className="font-black">{highlightText}</span>
+      {title.slice(end)}
+    </>
+  );
+}
+
 export default function MedievalBannerCards({ cards }: Props) {
   return (
     <div className="mt-7 sm:mt-10 space-y-2.5 sm:space-y-3">
       {cards.map((card, index) => (
-        <ScrollReveal key={card.step} delay={index * 120} className="w-full">
+        <ScrollReveal key={`${card.title}-${index}`} delay={index * 120} className="w-full">
           <div
             className="w-full"
             style={{
@@ -25,8 +41,9 @@ export default function MedievalBannerCards({ cards }: Props) {
                   </p>
 
                   <div className="py-0.5">
-                    <p className="text-[11px] font-semibold tracking-widest text-amber-200 mb-1.5">{card.step}</p>
-                    <h3 className="text-base sm:text-lg font-semibold text-rose-50 mb-1.5 sm:mb-2">{card.title}</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-rose-50 mb-1.5 sm:mb-2">
+                      {renderTitleWithHighlight(card.title, card.highlightText)}
+                    </h3>
                     <p className="text-xs sm:text-sm text-red-100 leading-relaxed">{card.text}</p>
                   </div>
                 </div>

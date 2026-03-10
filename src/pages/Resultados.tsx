@@ -27,13 +27,45 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
   const [ejeX, setEjeX] = useState<EjeX>('tiempo');
   const [panelAbierto, setPanelAbierto] = useState(true);
 
+  const formatMoney = (amount: number) =>
+    `€${amount.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   const datosGrafico = seleccionado.beneficioValues.map((b, i) => ({
     label:
       ejeX === 'tiempo'
         ? seleccionado.tiempoLabels[i]
         : seleccionado.apuestasValues[i].toString(),
     beneficio: b,
+    diferencia: i === 0 ? null : b - seleccionado.beneficioValues[i - 1],
   }));
+
+  const renderTooltipContent = (props: any) => {
+    const { active, payload, label } = props;
+    if (!active || !payload || payload.length === 0) return null;
+
+    const point = payload[0];
+    const current = typeof point.value === 'number' ? point.value : Number(point.value);
+    const diff = point.payload.diferencia;
+    const diffText = diff === null ? '--' : `${diff >= 0 ? '+' : '-'}${formatMoney(Math.abs(diff))}`;
+    const diffColor = diff === null ? '#6b7280' : diff >= 0 ? '#16a34a' : '#dc2626';
+    const labelText = ejeX === 'tiempo' ? `Mes: ${label}` : `Apuestas: ${label}`;
+
+    return (
+      <div
+        style={{
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+          background: '#ffffff',
+          padding: '10px 12px',
+        }}
+      >
+        <div style={{ color: '#111827', fontSize: '16px', lineHeight: 1.1 }}>{labelText}</div>
+        <div style={{ color: diffColor, fontSize: '24px', fontWeight: 800, lineHeight: 1.05 }}>{diffText}</div>
+        <div style={{ color: '#6b7280', fontSize: '13px', lineHeight: 1.2 }}>Beneficio: {formatMoney(current)}</div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
@@ -48,7 +80,7 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
             Volver
           </button>
           
-          <HeaderTitle as="h1" className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-[0.95] mb-3">
+          <HeaderTitle as="h1" className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-[1.08] sm:leading-[1.02] mb-3">
             Resultados <span className="text-blue-400">Verificados</span>
           </HeaderTitle>
           <p className="body-text text-gray-300 max-w-2xl">
@@ -141,7 +173,7 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
                 mobileVisible: false,
               },
               {
-                label: 'Beneficio Total',
+                label: 'Beneficio',
                 value: `€${seleccionado.beneficioTotal.toLocaleString()}`,
                 icon: TrendingUp,
                 color: 'text-yellow-500',
@@ -203,8 +235,12 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
               </div>
             </div>
 
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={datosGrafico} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+            <div
+              className="chart-interaction-lock"
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={datosGrafico} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis
                   dataKey="label"
@@ -230,15 +266,12 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
                   }}
                 />
                 <Tooltip
-                  formatter={(value) => [`€${value}`, 'Beneficio']}
-                  labelFormatter={(label) =>
-                    ejeX === 'tiempo' ? `Mes: ${label}` : `Apuestas: ${label}`
-                  }
-                  contentStyle={{
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                  cursor={{
+                    stroke: '#9ca3af',
+                    strokeWidth: 1,
+                    strokeDasharray: '4 4',
                   }}
+                  content={renderTooltipContent}
                 />
                 <Line
                   type="monotone"
@@ -246,11 +279,12 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
                   stroke="#3b82f6"
                   strokeWidth={3}
                   dot={{ r: 5, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
-                  activeDot={{ r: 7 }}
+                  activeDot={{ r: 7, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
                   name={seleccionado.nombre}
                 />
-              </LineChart>
-            </ResponsiveContainer>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           </div>

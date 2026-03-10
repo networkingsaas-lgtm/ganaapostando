@@ -32,7 +32,6 @@
 .hero-impact-font {
   font-family: 'Anton', 'Teko', 'Arial Narrow', sans-serif;
   letter-spacing: 0.015em;
-  line-height: 0.95;
 }
 
 .title-span-highlight {
@@ -230,6 +229,32 @@ html, body {
   filter: drop-shadow(0 1px 1px rgba(239, 68, 68, 0.32));
   pointer-events: none;
   z-index: -1;
+}
+
+.chart-interaction-lock {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.chart-interaction-lock .recharts-wrapper,
+.chart-interaction-lock .recharts-surface,
+.chart-interaction-lock svg {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.chart-interaction-lock .recharts-surface * {
+  pointer-events: none;
+}
+
+.chart-interaction-lock .recharts-line-dots circle {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.chart-interaction-lock :focus {
+  outline: none;
 }
 
 @media (min-width: 640px) {

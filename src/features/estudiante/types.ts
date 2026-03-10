@@ -1,5 +1,5 @@
 export interface EstudianteCard {
-  step: string;
   title: string;
+  highlightText?: string;
   text: string;
 }

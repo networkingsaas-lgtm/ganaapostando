@@ -22,13 +22,13 @@ export default function MetodoStats() {
         <div className="max-w-5xl ml-auto text-right">
           <HeaderTitle
             as="h2"
-            lineHeightClass="leading-[1.08] sm:leading-[1.02]"
+            lineHeightClass="leading-[1.16] sm:leading-[1.1]"
             className="text-3xl sm:text-5xl font-bold mb-4"
           >
             <TitleHighlightReverse inverted>Deja de pensar</TitleHighlightReverse> "si sale 3 veces seguidas negro <TitleHighlightReverse inverted>la siguiente saldrá rojo </TitleHighlightReverse>"
           </HeaderTitle>
           <p className="text-base sm:text-xl text-white/85">
-            por algo nuestros alumnos han ganado taaaanto dinero, no hay truco, es <span className="rebel-underline"> El método.</span>
+             No es mágia, no es suerte, es <span className="rebel-underline"> El método.</span>
           </p>
         </div>
 

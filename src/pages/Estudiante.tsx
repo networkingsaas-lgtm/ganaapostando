@@ -9,7 +9,7 @@ export default function Estudiante() {
         <div className="max-w-4xl text-left">
           <HeaderTitle
             as="h2"
-            lineHeightClass="leading-[1.08] sm:leading-[1.02]"
+            lineHeightClass="leading-[1.16] sm:leading-[1.1]"
             className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4"
           >
             <span className="title-span-highlight">Eres estudiante</span> y no te llega ni para gasolina?
