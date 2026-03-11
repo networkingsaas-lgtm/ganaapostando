@@ -28,7 +28,7 @@ export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: num
             lineHeightClass="leading-[1.12] sm:leading-[1.06]"
             className="heading-lg sm:heading-xl font-bold text-white mb-4"
           >
-            Invierte en Tu Educación
+            Invierte en Tu Educación Financiera
           </HeaderTitle>
           <p className="body-text text-white/85 max-w-3xl mx-auto">
             Elige el nivel que mejor se adapte a tus objetivos.

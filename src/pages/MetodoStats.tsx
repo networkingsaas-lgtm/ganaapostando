@@ -9,7 +9,11 @@ const roiMedio = usuarios.reduce((acc, u) => acc + (u.beneficioTotal / u.inversi
 const gananciaTotal = usuarios.reduce((acc, u) => acc + u.beneficioTotal, 0);
 const gananciaMedia = gananciaTotal / usuarios.length;
 
-export default function MetodoStats() {
+interface Props {
+  onVerResultados: () => void;
+}
+
+export default function MetodoStats({ onVerResultados }: Props) {
   const statsRef = useRef<HTMLDivElement>(null);
   const [startCountUp, setStartCountUp] = useState(false);
   const [cardsVisible, setCardsVisible] = useState(false);
@@ -36,7 +40,7 @@ export default function MetodoStats() {
   }, []);
 
   return (
-    <section className="startup-font relative overflow-hidden py-12 sm:py-20 section-padding text-white">
+    <section className="startup-font relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24 section-padding text-white">
       <div
         className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-[0.09]"
         style={{
@@ -56,7 +60,7 @@ export default function MetodoStats() {
             <TitleHighlightReverse inverted>Deja de pensar</TitleHighlightReverse> "si sale 3 veces seguidas negro <TitleHighlightReverse inverted>la siguiente saldrá rojo </TitleHighlightReverse>"
           </HeaderTitle>
           <p className="text-base sm:text-xl text-white/85">
-            La estadística es una parte importante de <span className="rebel-underline"> El método,</span> NO te dejes llevar por las emociones.
+            La estadística es una parte importante de <span className="rebel-underline"> El Método,</span> NO te dejes llevar por las emociones.
           </p>
         </div>
 
@@ -66,9 +70,15 @@ export default function MetodoStats() {
             total={animatedTotal}
             media={animatedMedia}
             visible={cardsVisible}
+            onVerResultados={onVerResultados}
           />
         </div>
+
       </div>
+
+      <p className="absolute inset-x-0 bottom-4 z-10 px-4 text-center text-[11px] sm:text-xs text-white/70">
+        La identidad de los alumnos es privada, pero no sus ganancias.
+      </p>
     </section>
   );
 }

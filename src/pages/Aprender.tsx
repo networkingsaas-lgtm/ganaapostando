@@ -1,12 +1,34 @@
+import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import HeaderTitle from '../components/ui/HeaderTitle';
 
 export default function Aprender() {
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const [cardsVisible, setCardsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = cardsRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setCardsVisible(true);
+        observer.unobserve(entry.target);
+      },
+      { threshold: 0.18 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const cards = [
     {
       title: 'Método por encima del deporte',
-      text: 'No necesitas ser experto en ligas o jugadores. Necesitas aplicar bien El método.',
-      underlinedText: 'El método.',
-      imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTXaSqfX1XC4uNm9_sEgUcdXcZPbko46HN43g&s',
+      text: 'No necesitas ser experto en ligas o jugadores. Necesitas aplicar bien El Método.',
+      underlinedText: 'El Método.',
+      imageUrl: '/images.jpg',
     },
     {
       title: 'Sin saber qué es el fuera de juego',
@@ -42,17 +64,29 @@ export default function Aprender() {
           </p>
         </div>
 
-        <div className="mt-8 sm:mt-12 flex md:grid md:grid-cols-4 gap-3 sm:gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-2 md:pb-0">
+        <div
+          ref={cardsRef}
+          className="mt-8 sm:mt-12 flex md:grid md:grid-cols-4 gap-3 sm:gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-2 md:pb-0"
+        >
           {cards.map((card, index) => {
             const isRedCard = index % 2 !== 0;
+            const cardStyle = {
+              '--dealer-delay': `${index * 140}ms`,
+              '--dealer-shift': `${-124 - index * 18}px`,
+              '--dealer-tilt': `${-14 + index * 2}deg`,
+            } as CSSProperties;
+
             return (
               <article
                 key={index}
-                className={`relative min-w-[260px] max-w-[260px] md:min-w-0 md:max-w-none snap-start overflow-hidden rounded-xl sm:rounded-2xl border p-4 sm:p-5 shadow-[0_8px_20px_rgba(15,23,42,0.08)] ${
+                className={`dealer-card relative min-w-[260px] max-w-[260px] md:min-w-0 md:max-w-none snap-start overflow-hidden rounded-xl sm:rounded-2xl border p-4 sm:p-5 shadow-[0_8px_20px_rgba(15,23,42,0.08)] ${
+                  cardsVisible ? 'is-visible' : ''
+                } ${
                   isRedCard
                     ? 'border-amber-400/70 bg-gradient-to-br from-red-900 via-red-800 to-red-700'
                     : 'border-slate-300 bg-white'
                 }`}
+                style={cardStyle}
               >
                 <div className="flex flex-col h-full">
                   <h3 className={`text-lg sm:text-xl font-semibold tracking-wide mb-2 sm:mb-3 ${isRedCard ? 'text-amber-100' : 'text-slate-900'}`}>

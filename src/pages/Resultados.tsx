@@ -70,8 +70,21 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Header */}
-      <PageReveal direction="down" delay={30} className="hero-startup-bg text-white py-10 sm:py-16 section-padding">
-        <div className="max-w-7xl mx-auto">
+      <PageReveal
+        direction="down"
+        delay={30}
+        className="hero-startup-bg relative overflow-hidden text-white py-10 sm:py-16 section-padding"
+      >
+        <div
+          className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-[0.09]"
+          style={{
+            backgroundImage: "url('/basket-bg.jpg')",
+            transform: 'scaleX(-1)',
+          }}
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10 max-w-7xl mx-auto">
           <button
             onClick={onVolver}
             className="flex items-center gap-2 text-blue-300 hover:text-white transition-colors mb-8 text-sm"
@@ -84,7 +97,7 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
             Resultados <span className="text-blue-400">Verificados</span>
           </HeaderTitle>
           <p className="body-text text-gray-300 max-w-2xl">
-            Evolución real de beneficios de nuestros alumnos aplicando <span className="rebel-underline"> El método.</span>
+            Evolución real de beneficios de nuestros alumnos aplicando <span className="rebel-underline"> El Método.</span>
           </p>
         </div>
       </PageReveal>

@@ -34,7 +34,7 @@ function App() {
     <div className="min-h-screen hero-startup-bg startup-fixed-bg overflow-x-hidden">
       <Hero onVerResultados={() => navegarA('resultados')} />
       <Estudiante />
-      <MetodoStats />
+      <MetodoStats onVerResultados={() => navegarA('resultados')} />
       <Aprender />
       <Pricing flashButtonsKey={flashButtonsKey} />
       <CTA onVerResultados={() => navegarA('resultados')} />

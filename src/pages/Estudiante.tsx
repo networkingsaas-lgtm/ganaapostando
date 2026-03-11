@@ -12,10 +12,10 @@ export default function Estudiante() {
             lineHeightClass="leading-[1.16] sm:leading-[1.1]"
             className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4"
           >
-            Te gustaria <span className="title-span-highlight">generar</span> dinero <span className="title-span-highlight">Desde casa</span>?
+            Te gustaría <span className="title-span-highlight">generar</span> dinero <span className="title-span-highlight">Desde casa</span>?
           </HeaderTitle>
           <p className="text-base sm:text-xl text-slate-600">
-            Puedes aprender <span className="rebel-underline"> El método.</span> para generar ingresos sin depender del azar.
+            Puedes aprender <span className="rebel-underline"> El Método.</span> para generar ingresos sin depender del azar.
           </p>
         </div>
 

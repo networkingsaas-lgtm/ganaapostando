@@ -143,6 +143,31 @@ html, body {
   transform: translateY(0);
 }
 
+@keyframes dealer-card-slide {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--dealer-shift, -124px), 0, 0) rotate(var(--dealer-tilt, -14deg)) scale(0.92);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(16px, -3px, 0) rotate(1.5deg) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+}
+
+.dealer-card {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.dealer-card.is-visible {
+  animation: dealer-card-slide 0.82s cubic-bezier(0.2, 0.88, 0.2, 1) forwards;
+  animation-delay: var(--dealer-delay, 0ms);
+}
+
 @keyframes carousel-scroll {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -259,5 +284,13 @@ html, body {
   .rebel-underline::after {
     bottom: 0.1em;
     height: 0.34em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dealer-card {
+    opacity: 1;
+    transform: none;
+    animation: none !important;
   }
 }

@@ -5,6 +5,7 @@ interface Props {
   total: number;
   media: number;
   visible?: boolean;
+  onVerResultados: () => void;
 }
 
 function formatCurrency(value: number) {
@@ -16,7 +17,7 @@ function formatCurrency(value: number) {
   });
 }
 
-export default function HeroStatsCards({ roi, total, media, visible = false }: Props) {
+export default function HeroStatsCards({ roi, total, media, visible = false, onVerResultados }: Props) {
   const cards = [
     {
       label: 'ROI Promedio',
@@ -41,14 +42,17 @@ export default function HeroStatsCards({ roi, total, media, visible = false }: P
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
       {cards.map((card) => (
-        <article
+        <button
+          type="button"
           key={card.label}
+          onClick={onVerResultados}
           className={[
             'group relative overflow-hidden rounded-[28px] border border-white/18',
             'bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.08)_100%)]',
-            'p-5 text-left shadow-[0_18px_60px_rgba(2,11,74,0.18)] ring-1 ring-white/6',
+            'w-full p-5 text-left shadow-[0_18px_60px_rgba(2,11,74,0.18)] ring-1 ring-white/6',
             'transition-[transform,opacity,box-shadow] duration-700 ease-out',
             'hover:-translate-y-1 hover:shadow-[0_22px_68px_rgba(2,11,74,0.24)]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-900',
             visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
             card.spanClass,
           ].join(' ')}
@@ -64,7 +68,7 @@ export default function HeroStatsCards({ roi, total, media, visible = false }: P
             <p className="text-sm text-white/80">{card.label}</p>
             <p className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-[2rem]">{card.value}</p>
           </div>
-        </article>
+        </button>
       ))}
     </div>
   );

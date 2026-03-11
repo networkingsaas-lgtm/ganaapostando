@@ -22,13 +22,13 @@ export default function Hero({ onVerResultados }: Props) {
         <div className="max-w-5xl mx-auto text-center space-y-8 sm:space-y-10">
           <PageReveal delay={100}>
             <HeaderTitle as="h1" className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-[0.95]">
-              CONVIERTE LAS <span className="text-white">APUESTAS</span> DEPORTIVAS EN <span className="title-span-highlight title-span-highlight-reverse-green">INGESOS REALES</span>
+              CONVIERTE LAS <span className="text-white">APUESTAS</span> DEPORTIVAS EN <span className="title-span-highlight title-span-highlight-reverse-green">INGRESOS REALES</span>
             </HeaderTitle>
           </PageReveal>
 
           <PageReveal delay={180}>
             <p className="body-text text-white/90 max-w-3xl mx-auto">
-              Aprende <span className="rebel-underline"> El método.</span>
+              Aprende <span className="rebel-underline"> El Método.</span>
             </p>
           </PageReveal>
 
