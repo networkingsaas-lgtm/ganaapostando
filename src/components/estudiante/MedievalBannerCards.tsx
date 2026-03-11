@@ -33,7 +33,7 @@ export default function MedievalBannerCards({ cards }: Props) {
               width: '82%',
             }}
           >
-            <article className="group [clip-path:polygon(0_0,100%_0,94%_50%,100%_100%,0_100%)] bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 p-[2px] shadow-[0_14px_26px_rgba(127,29,29,0.35)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_18px_34px_rgba(127,29,29,0.45)]">
+            <article className="group [clip-path:polygon(0_0,100%_0,94%_50%,100%_100%,0_100%)] bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 p-[2px] shadow-[0_14px_26px_rgba(127,29,29,0.28)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_18px_34px_rgba(127,29,29,0.38)]">
               <div className="[clip-path:polygon(0_0,100%_0,94%_50%,100%_100%,0_100%)] bg-gradient-to-br from-red-900 via-red-800 to-red-700 px-4 py-3 sm:px-5 sm:py-4">
                 <div className="flex items-stretch gap-3 sm:gap-4">
                   <p className="hero-impact-font flex items-center text-[clamp(3.4rem,11vw,6rem)] leading-none text-amber-300/90 transition-transform duration-500 group-hover:scale-[1.02]">

@@ -19,16 +19,6 @@
     linear-gradient(142deg, #020b4a 0%, #041a78 32%, #0a2f9f 62%, #13277a 100%);
 }
 
-.startup-font {
-  font-family: 'Sora', 'Segoe UI', sans-serif;
-  letter-spacing: -0.01em;
-}
-
-.rebel-font {
-  font-family: 'Teko', 'Arial Narrow', sans-serif;
-  letter-spacing: 0.03em;
-}
-
 .hero-impact-font {
   font-family: 'Anton', 'Teko', 'Arial Narrow', sans-serif;
   letter-spacing: 0.015em;
@@ -52,15 +42,19 @@
   z-index: -1;
 }
 
-.title-span-highlight-invert::before {
-  transform: skewX(12deg);
-}
-
 .title-span-highlight-reverse {
   color: #041a78;
 }
 
 .title-span-highlight-reverse::before {
+  background: #ffffff;
+}
+
+.title-span-highlight-reverse-green {
+  color: #15803d;
+}
+
+.title-span-highlight-reverse-green::before {
   background: #ffffff;
 }
 

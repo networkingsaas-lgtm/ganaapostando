@@ -9,12 +9,8 @@ interface Props {
   onOpenPlan: (plan: { name: string; content: string[] }) => void;
 }
 
-const MAX_AUTO_SWIPES = 3;
-
 export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Props) {
   const [activeCard, setActiveCard] = useState(0);
-  const [autoSwipeCount, setAutoSwipeCount] = useState(0);
-  const [autoplayEnabled, setAutoplayEnabled] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
@@ -44,31 +40,8 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
   };
 
   useEffect(() => {
-    setAutoSwipeCount(0);
     setActiveCard(0);
-    setAutoplayEnabled(false);
   }, [plans.length]);
-
-  useEffect(() => {
-    if (!autoplayEnabled || plans.length <= 1) return;
-
-    let swipeCount = 0;
-
-    const intervalId = window.setInterval(() => {
-      swipeCount += 1;
-      setAutoSwipeCount(swipeCount);
-
-      if (swipeCount >= MAX_AUTO_SWIPES) {
-        setActiveCard(0);
-        window.clearInterval(intervalId);
-        return;
-      }
-
-      setActiveCard((prev) => (prev + 1) % plans.length);
-    }, 2000);
-
-    return () => window.clearInterval(intervalId);
-  }, [autoplayEnabled, plans.length]);
 
   return (
     <>
@@ -86,10 +59,6 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
         ))}
       </div>
 
-      <div className="mb-4 text-center text-xs font-semibold tracking-wide text-white/80 md:hidden">
-        Auto swipe: {Math.min(autoSwipeCount, MAX_AUTO_SWIPES)}/{MAX_AUTO_SWIPES}
-      </div>
-
       <div className="md:hidden overflow-hidden pt-3 sm:pt-4 pb-2">
         <div
           className="flex transition-transform duration-300 ease-out"
@@ -103,7 +72,6 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
               <ScrollReveal
                 delay={index * 120}
                 className="w-full"
-                onReveal={index === 0 ? () => setAutoplayEnabled(true) : undefined}
               >
                 <div
                   className={`relative rounded-2xl p-5 transition-all ${

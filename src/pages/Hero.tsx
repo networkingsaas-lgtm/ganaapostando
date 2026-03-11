@@ -9,11 +9,20 @@ interface Props {
 export default function Hero({ onVerResultados }: Props) {
   return (
     <section className="hero-startup-bg startup-font relative overflow-hidden text-white pt-10 sm:pt-16 pb-12 sm:pb-16 section-padding">
-      <div className="max-w-7xl mx-auto">
+      <div
+        className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-[0.09]"
+        style={{
+          backgroundImage: "url('/estudiante-bg.png')",
+          transform: 'scaleX(-1)',
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="relative z-10 max-w-7xl mx-auto">
         <div className="max-w-5xl mx-auto text-center space-y-8 sm:space-y-10">
           <PageReveal delay={100}>
             <HeaderTitle as="h1" className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-[0.95]">
-              CONVIERTE LAS <span className="text-white">APUESTAS</span> DEPORTIVAS EN <span className="text-green-500">P*TOS INGRESOS REALES</span>
+              CONVIERTE LAS <span className="text-white">APUESTAS</span> DEPORTIVAS EN <span className="title-span-highlight title-span-highlight-reverse-green">INGESOS REALES</span>
             </HeaderTitle>
           </PageReveal>
 
@@ -46,7 +55,7 @@ export default function Hero({ onVerResultados }: Props) {
         </PageReveal>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
+      <div className="absolute bottom-0 left-0 right-0 z-10 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
     </section>
   );
 }

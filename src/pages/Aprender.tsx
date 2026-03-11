@@ -20,8 +20,8 @@ export default function Aprender() {
     },
     
     {
-      title: 'Pd: No soy un tipster j*der',
-      text: 'Yo no vendo humo ni estafo... Juego con la metodología sin riesgo, no se puede perder empatando pérdidas...;)',
+      title: 'Pd: No soy un tipster',
+      text: 'No te voy a dar pronósticos ni consejos de apuestas. Te voy a enseñar un sistema para que tú mismo puedas generar ingresos de forma consistente.',
       imageUrl: 'https://lh3.googleusercontent.com/proxy/hR2ZF-AXEnv3Ew4DfIxn2v5BfggJfQS5TL-h07Ne1fpE6j20DLCM0kTDtRWtb-SHeIjjV3SrePDZEH8uXQKNbyMgQ1zeC3qwA6PSw9w5w2SHI0Y',
     },
   ];
@@ -35,10 +35,10 @@ export default function Aprender() {
             lineHeightClass="leading-[1.16] sm:leading-[1.1]"
             className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4"
           >
-            Quieres <span className="title-span-highlight">ganar dinero</span> con <span className="rebel-underline"> El método.</span> pero el fúbol no <span className="title-span-highlight">es lo tuyo</span>?
+            Quieres <span className="title-span-highlight">ganar dinero</span>  pero el fútbol no <span className="title-span-highlight">es lo tuyo</span>?
           </HeaderTitle>
           <p className="text-base sm:text-xl text-slate-600">
-            No hace falta saber de fútbol, solo saber <span className="rebel-underline"> El método.</span>
+            No hace falta saber de fútbol, hace falta entender el mercado.
           </p>
         </div>
 
