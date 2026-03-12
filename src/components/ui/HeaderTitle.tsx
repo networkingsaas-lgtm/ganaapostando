@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -6,6 +7,7 @@ interface Props {
   as?: 'h1' | 'h2' | 'h3';
   uppercase?: boolean;
   lineHeightClass?: string;
+  style?: CSSProperties;
 }
 
 export default function HeaderTitle({
@@ -14,10 +16,14 @@ export default function HeaderTitle({
   as = 'h1',
   uppercase = true,
   lineHeightClass = 'leading-[0.95]',
+  style,
 }: Props) {
   const Tag = as;
   return (
-    <Tag className={`hero-impact-font ${uppercase ? 'uppercase' : ''} ${lineHeightClass} ${className}`.trim()}>
+    <Tag
+      className={`hero-impact-font ${uppercase ? 'uppercase' : ''} ${lineHeightClass} ${className}`.trim()}
+      style={style}
+    >
       {children}
     </Tag>
   );

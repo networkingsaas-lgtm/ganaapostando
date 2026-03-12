@@ -5,7 +5,7 @@ export const usuarios: Usuario[] = [
     id: 1,
     nombre: 'Alvaro',
     edad: 21,
-    avatarUrl: 'https://i.pravatar.cc/150?img=11',
+    genero: 'chico',
     tiempoLabels: ['5dic', '8dic', '10dic', '15dic', '19dic', '22dic', '26dic', '29dic', '30dic', '31dic', '4ene', '6ene', '10ene', '17ene', '21ene', '22ene','24ene','26ene', '30ene', '31ene', '6feb', '11feb', '18feb', '25feb', '28feb'],
     beneficioValues: [0, 69.61, 104.53, 129.94, 368.09, 354.18, 402, 388.96,455.59,521.37,519.15,491.33,489.94,540,515,761,811.12,973.35,1015.57,1003.43, 1040.95,1088.02,1101.35,1158.01,1200.66],
     apuestasValues: [1, 10, 19, 28, 37, 46, 55, 64, 73, 82, 91, 100, 109, 118, 127, 136, 145, 154, 163, 172, 181, 190, 201, 212, 223],
@@ -17,7 +17,7 @@ export const usuarios: Usuario[] = [
     id: 2,
     nombre: 'Alicia',
     edad: 22,
-    avatarUrl: 'https://i.pravatar.cc/150?img=5',
+    genero: 'chica',
     tiempoLabels: ['4mar', '9mar', '12mar', '13mar', '14mar', '16mar', '17mar', '21mar', '22mar', '23mar', '24mar', '27mar', '31mar', '1abr', '2abr','3abr','6abr','7abr','9abr','12abr','13abr','16abr','19abr','21abr','29abr','2may','3may'],
     beneficioValues: [0, 162.19, 169.37, 189.37, 232.04, 304.76,315.76,404.96,484.96,507.46,581.66,576.66,595.25,605.43,743.65,733.65,703.65,713.65,720.90,785.57,802.51,872.88,936.61,1121.66,1090.95,1208.70,1868.70],
     apuestasValues: [1, 5, 10, 14, 19, 23, 28, 32, 37, 41, 46, 50, 55, 59, 64, 68, 73, 77, 82, 86, 91, 95, 100, 104, 109, 113,118],
@@ -29,7 +29,7 @@ export const usuarios: Usuario[] = [
   id: 3,
   nombre: 'Alejandro',
   edad: 21,
-  avatarUrl: 'https://i.pravatar.cc/150?img=11',
+  genero: 'chico',
   tiempoLabels: ['2dic', '6dic', '9dic', '13dic', '16dic', '20dic', '23dic', '27dic', '30dic', '2ene', '5ene', '9ene', '12ene', '16ene', '19ene', '23ene', '26ene', '29ene', '1feb', '5feb', '8feb', '12feb', '16feb', '22feb', '27feb'] ,
   beneficioValues: [0, 58.42, 96.15, 143.77, 221.34, 287.90, 331.48, 379.25, 442.86, 498.13, 536.92, 521.40, 548.73, 601.55, 667.21, 702.18, 759.66, 845.37, 903.52, 952.08, 1011.44, 1076.39, 1132.75, 1189.63, 1210.18],
   apuestasValues: [1, 13, 24, 36, 48, 59, 71, 83, 94, 106, 117, 129, 141, 152, 164, 176, 187, 199, 210, 222, 234, 245, 257, 268, 280],
@@ -41,7 +41,7 @@ export const usuarios: Usuario[] = [
     id: 4,
     nombre: 'Luis',
     edad: 23,
-    avatarUrl: 'https://i.pravatar.cc/150?img=23',
+        genero: 'chico',
     tiempoLabels: ['13feb', '14feb', '16feb', '18feb', '20feb', '22feb', '23feb', '25feb', '26feb','2 mar','6mar','7mar','8mar','10mar','13mar','14mar','15mar','16mar','18mar','21mar','22mar','28mar','30mar','2abr','3abr','5abr'],
     beneficioValues: [0, -33, 53.89, 104.89, 128.69, 131.93, 399.14, 390, 1278.90,1273,1301.07,1291.07,1282.06,1246.51,1341.40,1440.55,1487.57,1476.87,1698.36,1719.36,1749.36,1791.40,1785,1862.92,1852.92,2025.30],
     apuestasValues: [1, 8, 15, 22, 29, 36, 43, 50, 57, 64, 71, 78, 85, 92, 99, 106, 113, 120, 127, 134, 141, 148, 155, 162, 171, 180],
@@ -53,7 +53,7 @@ export const usuarios: Usuario[] = [
   id: 5,
   nombre: 'Mateo',
   edad: 20,
-  avatarUrl: 'https://i.pravatar.cc/150?img=12',
+      genero: 'chico',
   tiempoLabels: [
     '6feb','12feb', '14feb', '16feb', '18feb', '19feb',
     '22feb', '23feb', '24feb', '28feb', '2mar',
@@ -81,7 +81,7 @@ export const usuarios: Usuario[] = [
   id: 6,
   nombre: 'Diego',
   edad: 19,
-  avatarUrl: 'https://i.pravatar.cc/150?img=32',
+      genero: 'chico',
   tiempoLabels: [
     '24abr', '26abr', '28abr', '30abr',
     '2may', '4may', '6may', '8may', '10may', '12may', '14may', '16may', '18may', '20may', '22may',
@@ -103,7 +103,7 @@ export const usuarios: Usuario[] = [
   id: 7,
   nombre: 'Isaac',
   edad: 22,
-  avatarUrl: 'https://i.pravatar.cc/150?img=15',
+      genero: 'chico',
   tiempoLabels: [
     '19abr', '24abr', '25abr', '29abr',
     '5may', '8may', '10may', '12may',
@@ -141,7 +141,7 @@ export const usuarios: Usuario[] = [
   id: 8,
   nombre: 'Daniel',
   edad: 30,
-  avatarUrl: 'https://i.pravatar.cc/150?img=15',
+      genero: 'chico',
   tiempoLabels: [
     '9may', '12may', '17may', '24may', '28may',
     '29may', '7jun', '12jun', '14jun', '16jun',
@@ -168,7 +168,7 @@ export const usuarios: Usuario[] = [
   id: 9,
   nombre: 'Guille',
   edad: 18,
-  avatarUrl: 'https://i.pravatar.cc/150?img=16',
+      genero: 'chico',
   tiempoLabels: [
     '25sep', '26sep', '28sep', '11oct'
   ],
@@ -185,7 +185,7 @@ export const usuarios: Usuario[] = [
   id: 10,
   nombre: 'Nacho',
   edad: 21,
-  avatarUrl: 'https://i.pravatar.cc/150?img=17',
+      genero: 'chico',
   tiempoLabels: [
     '27sep', '29sep', '3oct', '6oct', '11oct', '14oct',
     '16oct', '19oct', '20oct', '21oct', '22oct', '23oct',
@@ -208,7 +208,7 @@ export const usuarios: Usuario[] = [
   id: 11,
   nombre: 'Alba',
   edad: 26,
-  avatarUrl: 'https://i.pravatar.cc/150?img=19',
+  genero: 'chica',
   tiempoLabels: [
     '4oct', '5oct', '12oct', '16oct', '18oct', '19oct',
     '20oct', '21oct', '22oct', '23oct', '26oct', '27oct',
@@ -231,7 +231,7 @@ export const usuarios: Usuario[] = [
   id: 12,
   nombre: 'Sergi',
   edad: 20,
-  avatarUrl: 'https://i.pravatar.cc/150?img=40',
+      genero: 'chico',
   tiempoLabels: [
     '29sep', '2oct', '15oct', '17oct', '19oct', '20oct',
     '21oct', '22oct', '23oct', '28oct', '2nov', '7nov',
@@ -254,7 +254,7 @@ export const usuarios: Usuario[] = [
   id: 13,
   nombre: 'Pau',
   edad: 23,
-  avatarUrl: 'https://i.pravatar.cc/150?img=19',
+      genero: 'chico',
   tiempoLabels: [
     '24sep', '25sep', '26sep', '29sep', '1oct', '2oct',
     '3oct', '6oct', '7oct', '9oct', '13oct', '18oct',
@@ -281,4 +281,6 @@ export const usuarios: Usuario[] = [
   nCasasApuestas: 14,
 }
 ];
+
+
 

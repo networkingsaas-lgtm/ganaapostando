@@ -1,5 +1,6 @@
 import type { EstudianteCard } from '../../features/estudiante/types';
 import ScrollReveal from '../shared/ScrollReveal';
+import HeaderTitle from '../ui/HeaderTitle';
 
 interface Props {
   cards: EstudianteCard[];
@@ -22,29 +23,62 @@ function renderTitleWithHighlight(title: string, highlightText?: string) {
 }
 
 export default function MedievalBannerCards({ cards }: Props) {
+  const cardRedDark = '#a40015';
+  const cardRedLight = '#cf0018';
+  const cardGold = '#f2a900';
+  const cardIndexGold = '#f6c62f';
+
   return (
     <div className="mt-7 sm:mt-10 space-y-2.5 sm:space-y-3">
       {cards.map((card, index) => (
-        <ScrollReveal key={`${card.title}-${index}`} delay={index * 120} className="w-full">
+        <ScrollReveal key={`${card.title}-${index}`} delay={index * 120} className="w-full sr-from-right">
           <div
             className="w-full"
             style={{
-              marginLeft: `${index * 4}%`,
+              marginLeft: `${index * 6.4}%`,
               width: '82%',
             }}
           >
-            <article className="group [clip-path:polygon(0_0,100%_0,94%_50%,100%_100%,0_100%)] bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 p-[2px] shadow-[0_14px_26px_rgba(127,29,29,0.28)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_18px_34px_rgba(127,29,29,0.38)]">
-              <div className="[clip-path:polygon(0_0,100%_0,94%_50%,100%_100%,0_100%)] bg-gradient-to-br from-red-900 via-red-800 to-red-700 px-4 py-3 sm:px-5 sm:py-4">
-                <div className="flex items-stretch gap-3 sm:gap-4">
-                  <p className="hero-impact-font flex items-center text-[clamp(3.4rem,11vw,6rem)] leading-none text-amber-300/90 transition-transform duration-500 group-hover:scale-[1.02]">
+            <article
+              className="[clip-path:polygon(0_0,100%_0,94%_50%,100%_100%,0_100%)] p-[12px] shadow-[0_18px_32px_rgba(127,0,14,0.28),0_0_0_4px_rgba(242,169,0,0.18)]"
+              style={{ background: `linear-gradient(135deg, ${cardRedDark} 0%, ${cardRedLight} 100%)` }}
+            >
+              <div
+                className="relative isolate overflow-hidden [clip-path:polygon(0_0,100%_0,94%_50%,100%_100%,0_100%)] border-4 px-4 py-3 sm:px-5 sm:py-4"
+                style={{
+                  background: `linear-gradient(135deg, ${cardRedDark} 0%, ${cardRedLight} 100%)`,
+                  borderColor: cardGold,
+                }}
+              >
+                {card.backgroundImage ? (
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-0"
+                    style={{ backgroundImage: `url(${card.backgroundImage})` }}
+                  />
+                ) : null}
+
+                <div className="relative z-10 flex items-stretch gap-2.5 sm:gap-4">
+                  <p
+                    className="hero-impact-font flex shrink-0 items-center self-start text-[clamp(2.7rem,10vw,6rem)] leading-[0.9]"
+                    style={{ color: cardIndexGold }}
+                  >
                     #{index + 1}
                   </p>
 
-                  <div className="py-0.5">
-                    <h3 className="text-base sm:text-lg font-semibold text-rose-50 mb-1.5 sm:mb-2">
+                  <div className="min-w-0 flex-1 py-0.5">
+                    <HeaderTitle
+                      as="h3"
+                      uppercase={false}
+                      lineHeightClass="leading-[1.06] sm:leading-[1.02]"
+                      className="mb-1.5 text-[clamp(1rem,2.3vw,2rem)] font-bold sm:mb-2"
+                      style={{ color: '#ffffff' }}
+                    >
                       {renderTitleWithHighlight(card.title, card.highlightText)}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-red-100 leading-relaxed">{card.text}</p>
+                    </HeaderTitle>
+                    <p className="text-[clamp(0.84rem,1.55vw,1.1rem)] font-bold leading-[1.45] text-white">
+                      {card.text}
+                    </p>
                   </div>
                 </div>
               </div>

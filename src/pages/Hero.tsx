@@ -12,7 +12,7 @@ export default function Hero({ onVerResultados }: Props) {
       <div
         className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-[0.09]"
         style={{
-          backgroundImage: "url('/estudiante-bg.png')",
+          backgroundImage: "url('/estudiante-bg-optimized.jpg')",
           transform: 'scaleX(-1)',
         }}
         aria-hidden="true"

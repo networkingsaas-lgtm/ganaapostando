@@ -138,34 +138,55 @@ html, body {
   transition: opacity 0.7s ease, transform 0.7s ease;
 }
 
+.sr-from-right {
+  transform: translateX(40px);
+}
+
 .sr-visible {
   opacity: 1;
   transform: translateY(0);
 }
 
-@keyframes dealer-card-slide {
-  0% {
-    opacity: 0;
-    transform: translate3d(var(--dealer-shift, -124px), 0, 0) rotate(var(--dealer-tilt, -14deg)) scale(0.92);
-  }
-  70% {
-    opacity: 1;
-    transform: translate3d(16px, -3px, 0) rotate(1.5deg) scale(1.01);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
-  }
-}
-
 .dealer-card {
-  opacity: 0;
-  will-change: transform, opacity;
+  perspective: 1800px;
+  cursor: pointer;
 }
 
-.dealer-card.is-visible {
-  animation: dealer-card-slide 0.82s cubic-bezier(0.2, 0.88, 0.2, 1) forwards;
-  animation-delay: var(--dealer-delay, 0ms);
+.dealer-card__inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.96s cubic-bezier(0.22, 0.72, 0.14, 1);
+}
+
+.dealer-card__face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.dealer-card__face--back {
+  background: #f4f4f2;
+}
+
+.dealer-card__face--back::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 38%),
+    linear-gradient(315deg, rgba(15, 23, 42, 0.18), transparent 42%);
+  pointer-events: none;
+}
+
+.dealer-card__face--front {
+  transform: rotateX(180deg);
+}
+
+.dealer-card.is-flipped .dealer-card__inner {
+  transform: rotateX(180deg);
 }
 
 @keyframes carousel-scroll {
@@ -289,8 +310,15 @@ html, body {
 
 @media (prefers-reduced-motion: reduce) {
   .dealer-card {
-    opacity: 1;
     transform: none;
+  }
+
+  .dealer-card__inner {
     animation: none !important;
+    transition: none !important;
+  }
+
+  .dealer-card.is-flipped .dealer-card__inner {
+    transform: rotateX(180deg);
   }
 }

@@ -139,11 +139,17 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
                       : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm'
                   }`}
                 >
-                  <img
-                    src={u.avatarUrl}
-                    alt={u.nombre}
-                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                  />
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
+                    <img
+                      src="/sin_foto.png"
+                      alt={`Foto de perfil de ${u.nombre}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <span
+                      className={`absolute inset-0 ${u.genero === 'chica' ? 'bg-red-500/35' : 'bg-blue-500/35'}`}
+                      aria-hidden="true"
+                    />
+                  </div>
                   <div className="min-w-0">
                     <p className={`font-semibold text-sm truncate ${seleccionado.id === u.id ? 'text-blue-700' : 'text-gray-900'}`}>
                       {u.nombre}

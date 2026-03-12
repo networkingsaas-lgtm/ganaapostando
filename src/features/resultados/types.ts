@@ -2,7 +2,7 @@
   id: number;
   nombre: string;
   edad: number;
-  avatarUrl: string;
+  genero: 'chica' | 'chico';
   tiempoLabels: string[];
   beneficioValues: number[];
   apuestasValues: number[];
@@ -10,4 +10,6 @@
   inversion: number;
   nCasasApuestas: number;
 }
+
+
 
