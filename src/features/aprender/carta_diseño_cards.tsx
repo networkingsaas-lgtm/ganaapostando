@@ -17,11 +17,11 @@ export const aprenderCards: AprenderCardData[] = [
     text: 'La diferencia entre perder y ganar está en la disciplina. Tener una estrategia clara y respetarla siempre es lo que te aleja del juego impulsivo y te acerca a resultados consistentes.',
   },
   {
-    title: 'La ludpatía no es un juego',
+    title: 'La ludopatía no es un juego',
     text: 'Apostar sin control puede tener consecuencias muy serias. Por eso aquí enseñamos un método basado en estrategia, gestión y responsabilidad. Nunca apuestes a ciegas.',
   },
   {
-    title: 'los tipsters no son tus amigos',
+    title: 'Los tipsters no son tus amigos',
     text: 'Muchos viven de vender ilusión, no de hacerte ganar. Si dependes de las apuestas de otros, nunca entenderás realmente lo que haces ni tendrás el control de tus decisiones.',
     underlinedText: '',
   },

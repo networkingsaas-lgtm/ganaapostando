@@ -76,7 +76,7 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
         className="hero-startup-bg relative overflow-hidden text-white py-10 sm:py-16 section-padding"
       >
         <div
-          className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-[0.09]"
+          className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-[0.20]"
           style={{
             backgroundImage: "url('/basket-bg.jpg')",
             transform: 'scaleX(-1)',
@@ -173,7 +173,7 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
                 icon: DollarSign,
                 color: 'text-blue-500',
                 bg: 'bg-blue-50',
-                mobileVisible: true,
+                mobileVisible: false,
               },
               {
                 label: 'Nº Apuestas',
@@ -181,7 +181,7 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
                 icon: BarChart2,
                 color: 'text-purple-500',
                 bg: 'bg-purple-50',
-                mobileVisible: false,
+                mobileVisible: true,
               },
               {
                 label: 'ROI',

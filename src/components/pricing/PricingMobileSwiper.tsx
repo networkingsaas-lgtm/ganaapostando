@@ -69,10 +69,7 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
         >
           {plans.map((plan, index) => (
             <div key={index} className="w-full flex-shrink-0 px-1">
-              <ScrollReveal
-                delay={index * 120}
-                className="w-full"
-              >
+              <ScrollReveal delay={index * 120} className="w-full">
                 <div
                   className={`relative rounded-2xl p-5 transition-all ${
                     plan.highlighted

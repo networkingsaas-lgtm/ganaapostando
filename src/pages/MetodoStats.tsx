@@ -57,7 +57,7 @@ export default function MetodoStats({ onVerResultados }: Props) {
         <img
           src={backgroundImage}
           alt=""
-          className={`h-full w-full scale-x-[-1] object-cover opacity-[0.09] ${
+          className={`h-full w-full scale-x-[-1] object-cover opacity-[0.20] ${
             isSmallScreen ? 'origin-center scale-[1.28] object-center' : 'object-center'
           }`}
         />
@@ -73,7 +73,7 @@ export default function MetodoStats({ onVerResultados }: Props) {
             Aquí no <TitleHighlightReverse inverted>incentivamos</TitleHighlightReverse> el juego, sino <TitleHighlightReverse inverted>el aprendizaje</TitleHighlightReverse>
           </HeaderTitle>
           <p className="text-base sm:text-xl text-white/85">
-              Cuando conoces los trucos y artimañas que utilizan los apostadores profesionales, entiendes que apostar sin estrategia es perder. Por eso queremos enseñarte a ganar, igual que a nuestros alumnos.          </p>
+              Cuando conoces los trucos y artimañas que utilizamos en <span className="rebel-underline"> El Método,</span> entiendes que apostar sin estrategia es perder. Por eso queremos enseñarte a ganar, igual que a nuestros alumnos:          </p>
         </div>
 
         <div ref={statsRef} className="mt-8 sm:mt-12">
