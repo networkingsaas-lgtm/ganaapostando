@@ -6,15 +6,27 @@ interface Props {
   className?: string;
   direction?: 'up' | 'down';
   delay?: number; // ms
+  instant?: boolean;
 }
 
-export default function PageReveal({ children, className = '', direction = 'up', delay = 30 }: Props) {
-  const [visible, setVisible] = useState(false);
+export default function PageReveal({
+  children,
+  className = '',
+  direction = 'up',
+  delay = 30,
+  instant = false,
+}: Props) {
+  const [visible, setVisible] = useState(instant);
 
   useEffect(() => {
+    if (instant) {
+      setVisible(true);
+      return;
+    }
+
     const t = setTimeout(() => setVisible(true), delay);
     return () => clearTimeout(t);
-  }, [delay]);
+  }, [delay, instant]);
 
   const hidden = direction === 'up' ? 'opacity-0 translate-y-8' : 'opacity-0 -translate-y-8';
 

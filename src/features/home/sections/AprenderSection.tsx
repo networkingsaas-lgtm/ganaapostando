@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import ScrollReveal from '../components/shared/ScrollReveal';
-import HeaderTitle from '../components/ui/HeaderTitle';
-import { CartaDisenoCard, aprenderCards } from '../features/aprender/carta_diseño_cards';
+import { CartaDisenoCard, aprenderCards } from '../../aprender/cards';
+import HeaderTitle from '../../../shared/components/HeaderTitle';
+import ScrollReveal from '../../../shared/components/ScrollReveal';
 
-export default function Aprender() {
+export default function AprenderSection() {
   const [revealedCards, setRevealedCards] = useState<number[]>([]);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const hasStartedSequenceRef = useRef(false);
@@ -35,7 +35,7 @@ export default function Aprender() {
 
         observer.unobserve(container);
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     observer.observe(container);

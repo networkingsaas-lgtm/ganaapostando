@@ -1,9 +1,52 @@
 import { Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { loginWithSupabase, registerWithBackend } from '../lib/auth';
+import { getSupabaseClient } from '../lib/supabase';
 
 interface Props {
   onVolver: () => void;
+  onRegistroExitoso: () => void;
 }
+
+interface RegisterFormState {
+  username: string;
+  email: string;
+  password: string;
+}
+
+type SocialProvider = 'google' | 'facebook' | 'apple';
+
+const INITIAL_FORM: RegisterFormState = {
+  username: '',
+  email: '',
+  password: '',
+};
+
+const getFriendlyRegisterError = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return 'No se pudo completar el registro.';
+};
+
+const getFriendlyAutoLoginError = (error: unknown) => {
+  if (!(error instanceof Error) || !error.message.trim()) {
+    return 'Registro completado, pero no se pudo iniciar sesion automaticamente.';
+  }
+
+  const normalizedMessage = error.message.toLowerCase();
+
+  if (normalizedMessage.includes('invalid login credentials')) {
+    return 'Registro completado, pero no se pudo iniciar sesion automaticamente.';
+  }
+
+  if (normalizedMessage.includes('email not confirmed')) {
+    return 'Registro completado. Confirma tu correo para iniciar sesion.';
+  }
+
+  return `Registro completado, pero no se pudo iniciar sesion automaticamente: ${error.message}`;
+};
 
 function GoogleIcon() {
   return (
@@ -50,10 +93,84 @@ function AppleIcon() {
   );
 }
 
-export default function Registro({ onVolver }: Props) {
+export default function Registro({ onVolver, onRegistroExitoso }: Props) {
   const [showPassword, setShowPassword] = useState(false);
-  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [socialSubmitting, setSocialSubmitting] = useState<SocialProvider | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const hasPendingRequest = isSubmitting || socialSubmitting !== null;
+
+  const handleSocialLogin = async (provider: SocialProvider, providerLabel: string) => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setSocialSubmitting(provider);
+
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/mapa`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message.trim()
+          ? error.message
+          : `No se pudo iniciar sesion con ${providerLabel}.`;
+      setErrorMessage(message);
+    } finally {
+      setSocialSubmitting(null);
+    }
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const username = form.username.trim();
+    const email = form.email.trim();
+    const password = form.password;
+
+    if (!username || !email || !password) {
+      setErrorMessage('Completa usuario, correo y contrasena.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage('La contrasena debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await registerWithBackend({ username, email, password });
+      setSuccessMessage(response.message || 'Usuario registrado correctamente.');
+
+      try {
+        await loginWithSupabase(email, password);
+        setForm(INITIAL_FORM);
+        setShowPassword(false);
+        onRegistroExitoso();
+      } catch (loginError) {
+        setErrorMessage(getFriendlyAutoLoginError(loginError));
+      }
+    } catch (error) {
+      setErrorMessage(getFriendlyRegisterError(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <main
@@ -63,7 +180,7 @@ export default function Registro({ onVolver }: Props) {
       <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
 
       <section className="relative z-10 min-h-screen">
-        <div className="relative flex min-h-screen w-full lg:w-1/2 px-6 py-6 backdrop-blur-sm sm:px-10 lg:px-14">
+        <div className="relative flex min-h-screen w-full px-6 py-6 backdrop-blur-sm sm:px-10 lg:w-1/2 lg:px-14">
           <div className="hero-startup-bg absolute inset-0 opacity-80" aria-hidden="true" />
 
           <div className="relative z-10 flex w-full max-w-xl flex-1 flex-col">
@@ -76,7 +193,7 @@ export default function Registro({ onVolver }: Props) {
                 Volver al inicio
               </button>
               <p className="text-lg font-semibold text-white">
-                <span className="rebel-underline">El Método.</span>
+                <span className="rebel-underline">El Metodo.</span>
               </p>
             </div>
 
@@ -95,8 +212,13 @@ export default function Registro({ onVolver }: Props) {
                     <div className="space-y-4 lg:space-y-5">
                       <button
                         type="button"
-                        onClick={() => setShowRegisterForm(true)}
-                        className="w-full rounded-2xl bg-white px-4 py-3.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                        onClick={() => {
+                          setShowRegisterForm(true);
+                          setErrorMessage(null);
+                          setSuccessMessage(null);
+                        }}
+                        disabled={hasPendingRequest}
+                        className="w-full rounded-2xl bg-white px-4 py-3.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:bg-white/80"
                       >
                         Registrarse
                       </button>
@@ -109,26 +231,32 @@ export default function Registro({ onVolver }: Props) {
 
                       <button
                         type="button"
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                        onClick={() => void handleSocialLogin('google', 'Google')}
+                        disabled={hasPendingRequest}
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         <GoogleIcon />
-                        Inicia sesión con Google
+                        {socialSubmitting === 'google' ? 'Conectando...' : 'Inicia sesion con Google'}
                       </button>
 
                       <button
                         type="button"
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                        onClick={() => void handleSocialLogin('facebook', 'Facebook')}
+                        disabled={hasPendingRequest}
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         <FacebookIcon />
-                        Inicia sesión con Facebook
+                        {socialSubmitting === 'facebook' ? 'Conectando...' : 'Inicia sesion con Facebook'}
                       </button>
 
                       <button
                         type="button"
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                        onClick={() => void handleSocialLogin('apple', 'Apple')}
+                        disabled={hasPendingRequest}
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         <AppleIcon />
-                        Inicia sesión con Apple
+                        {socialSubmitting === 'apple' ? 'Conectando...' : 'Inicia sesion con Apple'}
                       </button>
                     </div>
                   </div>
@@ -138,70 +266,105 @@ export default function Registro({ onVolver }: Props) {
                       showRegisterForm ? 'opacity-100 translate-y-0' : 'pointer-events-none opacity-0 translate-y-4'
                     }`}
                   >
-                    <form className="space-y-4">
+                    <form className="space-y-4" onSubmit={handleSubmit}>
                       <input
                         type="text"
-                        placeholder="Nombre completo"
+                        name="username"
+                        value={form.username}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            username: event.target.value,
+                          }))
+                        }
+                        placeholder="Usuario"
                         className="w-full rounded-2xl border border-white/15 bg-white/8 px-4 py-3 text-white outline-none placeholder:text-white/45 focus:border-white/35"
+                        autoComplete="username"
+                        disabled={hasPendingRequest}
                       />
                       <input
                         type="email"
-                        placeholder="Correo electrónico"
+                        name="email"
+                        value={form.email}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            email: event.target.value,
+                          }))
+                        }
+                        placeholder="Correo electronico"
                         className="w-full rounded-2xl border border-white/15 bg-white/8 px-4 py-3 text-white outline-none placeholder:text-white/45 focus:border-white/35"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Usuario"
-                        className="w-full rounded-2xl border border-white/15 bg-white/8 px-4 py-3 text-white outline-none placeholder:text-white/45 focus:border-white/35"
+                        autoComplete="email"
+                        disabled={hasPendingRequest}
                       />
                       <div className="relative">
                         <input
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Contraseña"
+                          name="password"
+                          value={form.password}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              password: event.target.value,
+                            }))
+                          }
+                          placeholder="Contrasena"
                           className="w-full rounded-2xl border border-white/15 bg-white/8 px-4 py-3 pr-12 text-white outline-none placeholder:text-white/45 focus:border-white/35"
+                          autoComplete="new-password"
+                          disabled={hasPendingRequest}
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword((value) => !value)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 transition hover:text-white"
-                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          disabled={hasPendingRequest}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/40"
+                          aria-label={showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
                       </div>
-                      <div className="relative">
-                        <input
-                          type={showRepeatPassword ? 'text' : 'password'}
-                          placeholder="Repite la contraseña"
-                          className="w-full rounded-2xl border border-white/15 bg-white/8 px-4 py-3 pr-12 text-white outline-none placeholder:text-white/45 focus:border-white/35"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowRepeatPassword((value) => !value)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 transition hover:text-white"
-                          aria-label={showRepeatPassword ? 'Ocultar contraseña repetida' : 'Mostrar contraseña repetida'}
-                        >
-                          {showRepeatPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
+
+                      {errorMessage && (
+                        <p className="rounded-2xl border border-red-300/35 bg-red-500/12 px-4 py-3 text-sm text-red-100">
+                          {errorMessage}
+                        </p>
+                      )}
+
+                      {successMessage && (
+                        <p className="rounded-2xl border border-emerald-300/35 bg-emerald-500/12 px-4 py-3 text-sm text-emerald-100">
+                          {successMessage}
+                        </p>
+                      )}
 
                       <button
                         type="submit"
-                        className="w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                        disabled={hasPendingRequest}
+                        className="w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:bg-white/80"
                       >
-                        Crear cuenta
+                        {isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => setShowRegisterForm(false)}
-                        className="block w-full text-center text-sm text-white/75 transition hover:text-white"
+                        onClick={() => {
+                          setShowRegisterForm(false);
+                          setErrorMessage(null);
+                          setSuccessMessage(null);
+                        }}
+                        disabled={hasPendingRequest}
+                        className="block w-full text-center text-sm text-white/75 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/50"
                       >
                         Volver a las opciones
                       </button>
                     </form>
                   </div>
                 </div>
+
+                {!showRegisterForm && errorMessage && (
+                  <p className="mt-4 rounded-2xl border border-red-300/35 bg-red-500/12 px-4 py-3 text-sm text-red-100">
+                    {errorMessage}
+                  </p>
+                )}
               </div>
             </div>
           </div>

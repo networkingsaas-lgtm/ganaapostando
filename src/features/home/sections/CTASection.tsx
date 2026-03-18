@@ -4,7 +4,7 @@ interface Props {
   onVerResultados: () => void;
 }
 
-export default function CTA({ onVerResultados }: Props) {
+export default function CTASection({ onVerResultados }: Props) {
   return (
     <section className="bg-white py-12 sm:py-20 section-padding text-slate-900">
       <div className="max-w-5xl mx-auto text-center">
@@ -19,7 +19,8 @@ export default function CTA({ onVerResultados }: Props) {
         <div className="inline-grid grid-cols-1 sm:flex sm:flex-row justify-center gap-4 pt-1 mb-10 sm:mb-16">
           <button
             onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-5 sm:px-7 py-3 sm:py-3.5 rounded-full text-sm sm:text-base font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-blue-700/20 transform hover:scale-105 transition-all shadow-xl">
+            className="px-5 sm:px-7 py-3 sm:py-3.5 rounded-full text-sm sm:text-base font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-blue-700/20 transform hover:scale-105 transition-all shadow-xl"
+          >
             Comenzar Ahora
           </button>
           <button

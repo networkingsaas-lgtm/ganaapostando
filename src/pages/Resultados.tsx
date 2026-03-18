@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
-import PageReveal from '../components/shared/PageReveal';
-import HeaderTitle from '../components/ui/HeaderTitle';
+import HeaderTitle from '../shared/components/HeaderTitle';
+import PageReveal from '../shared/components/PageReveal';
 import { TrendingUp, BarChart2, DollarSign, ArrowLeft, Building2 } from 'lucide-react';
 import {
   LineChart,

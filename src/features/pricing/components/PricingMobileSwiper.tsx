@@ -1,32 +1,107 @@
 import { Check, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { PricingPlan } from '../../features/pricing/types';
-import ScrollReveal from '../shared/ScrollReveal';
+import { useEffect, useRef, useState, type TouchEvent } from 'react';
+import type { PricingPlan } from '../types';
+import ScrollReveal from '../../../shared/components/ScrollReveal';
 
 interface Props {
   plans: PricingPlan[];
   animClass: string;
   onOpenPlan: (plan: { name: string; content: string[] }) => void;
+  onStartNow: () => void;
+  theme?: 'dark' | 'light';
 }
 
-export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Props) {
+export default function PricingMobileSwiper({
+  plans,
+  animClass,
+  onOpenPlan,
+  onStartNow,
+  theme = 'dark',
+}: Props) {
   const [activeCard, setActiveCard] = useState(0);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchEndX, setTouchEndX] = useState<number | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const touchCurrentXRef = useRef<number | null>(null);
+  const isHorizontalSwipeRef = useRef(false);
+  const previousBodyOverflowRef = useRef<string | null>(null);
+  const previousHtmlOverflowRef = useRef<string | null>(null);
 
   const minSwipeDistance = 50;
+  const swipeLockThreshold = 12;
+  const isLightTheme = theme === 'light';
 
-  const onTouchStart = (x: number) => {
-    setTouchEndX(null);
-    setTouchStartX(x);
+  const unlockVerticalScroll = () => {
+    if (previousBodyOverflowRef.current === null || previousHtmlOverflowRef.current === null) {
+      return;
+    }
+
+    document.body.style.overflow = previousBodyOverflowRef.current;
+    document.documentElement.style.overflow = previousHtmlOverflowRef.current;
+    previousBodyOverflowRef.current = null;
+    previousHtmlOverflowRef.current = null;
   };
 
-  const onTouchMove = (x: number) => {
-    setTouchEndX(x);
+  const lockVerticalScroll = () => {
+    if (previousBodyOverflowRef.current !== null || previousHtmlOverflowRef.current !== null) {
+      return;
+    }
+
+    previousBodyOverflowRef.current = document.body.style.overflow;
+    previousHtmlOverflowRef.current = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+  };
+
+  const resetTouchTracking = () => {
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    touchCurrentXRef.current = null;
+    isHorizontalSwipeRef.current = false;
+    unlockVerticalScroll();
+  };
+
+  const onTouchStart = (x: number, y: number) => {
+    touchStartXRef.current = x;
+    touchStartYRef.current = y;
+    touchCurrentXRef.current = x;
+    isHorizontalSwipeRef.current = false;
+  };
+
+  const onTouchMove = (event: TouchEvent<HTMLDivElement>) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) {
+      return;
+    }
+
+    const touch = event.targetTouches[0];
+    const deltaX = touch.clientX - touchStartXRef.current;
+    const deltaY = touch.clientY - touchStartYRef.current;
+
+    touchCurrentXRef.current = touch.clientX;
+
+    if (!isHorizontalSwipeRef.current) {
+      const movedFarEnough =
+        Math.abs(deltaX) > swipeLockThreshold || Math.abs(deltaY) > swipeLockThreshold;
+
+      if (movedFarEnough && Math.abs(deltaX) > Math.abs(deltaY)) {
+        isHorizontalSwipeRef.current = true;
+        lockVerticalScroll();
+      }
+    }
+
+    if (isHorizontalSwipeRef.current) {
+      event.preventDefault();
+    }
   };
 
   const onTouchEnd = () => {
-    if (touchStartX === null || touchEndX === null || plans.length === 0) return;
+    const touchStartX = touchStartXRef.current;
+    const touchEndX = touchCurrentXRef.current;
+
+    if (touchStartX === null || touchEndX === null || plans.length === 0) {
+      resetTouchTracking();
+      return;
+    }
+
     const delta = touchStartX - touchEndX;
     const isSwipeLeft = delta > minSwipeDistance;
     const isSwipeRight = delta < -minSwipeDistance;
@@ -37,11 +112,19 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
     if (isSwipeRight) {
       setActiveCard((prev) => (prev - 1 + plans.length) % plans.length);
     }
+
+    resetTouchTracking();
   };
 
   useEffect(() => {
     setActiveCard(0);
   }, [plans.length]);
+
+  useEffect(() => {
+    return () => {
+      unlockVerticalScroll();
+    };
+  }, []);
 
   return (
     <>
@@ -52,7 +135,13 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
             type="button"
             onClick={() => setActiveCard(idx)}
             className={`h-2.5 w-2.5 rounded-full transition-all ${
-              idx === activeCard ? 'bg-white scale-110' : 'bg-white/40'
+              idx === activeCard
+                ? isLightTheme
+                  ? 'bg-blue-600 scale-110'
+                  : 'bg-white scale-110'
+                : isLightTheme
+                  ? 'bg-slate-300'
+                  : 'bg-white/40'
             }`}
             aria-label={`Ir a tarjeta ${idx + 1}`}
           />
@@ -63,9 +152,10 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
         <div
           className="flex transition-transform duration-300 ease-out"
           style={{ transform: `translateX(-${activeCard * 100}%)` }}
-          onTouchStart={(e) => onTouchStart(e.targetTouches[0].clientX)}
-          onTouchMove={(e) => onTouchMove(e.targetTouches[0].clientX)}
+          onTouchStart={(e) => onTouchStart(e.targetTouches[0].clientX, e.targetTouches[0].clientY)}
+          onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
+          onTouchCancel={onTouchEnd}
         >
           {plans.map((plan, index) => (
             <div key={index} className="w-full flex-shrink-0 px-1">
@@ -139,10 +229,9 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
                     </button>
                   )}
 
-                  <a
-                    href="https://buy.stripe.com/test_14AcN5fLB0ftgjF6OrcIE00"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={onStartNow}
                     className={`block w-full py-4 rounded-lg font-semibold transition-all mb-8 text-center ${
                       plan.highlighted
                         ? 'bg-white text-blue-600 hover:bg-gray-100'
@@ -151,7 +240,7 @@ export default function PricingMobileSwiper({ plans, animClass, onOpenPlan }: Pr
                     style={animClass ? { animationDelay: `${0.9 + index * 0.15}s` } : undefined}
                   >
                     Comenzar Ahora
-                  </a>
+                  </button>
 
                   <div className="space-y-4">
                     {plan.features.map((feature, idx) => {

@@ -15,28 +15,25 @@ interface SwipeTransition<T extends string> {
 }
 
 interface RouteSwiperProps<T extends string> {
-  initialRoute: T;
-  getRouteFromPath: (pathname: string) => T;
-  getPathFromRoute: (route: T) => string;
+  currentRoute: T;
+  onNavigate: (route: T) => void;
   transitions: SwipeTransition<T>[];
   renderRoute: (route: T, navigate: (route: T) => void) => React.ReactNode;
 }
 
 export default function RouteSwiper<T extends string>({
-  initialRoute,
-  getRouteFromPath,
-  getPathFromRoute,
+  currentRoute,
+  onNavigate,
   transitions,
   renderRoute,
 }: RouteSwiperProps<T>) {
-  const [route, setRoute] = useState<T>(initialRoute);
-  const [scenes, setScenes] = useState<RouteScene<T>[]>([{ id: 1, route: initialRoute }]);
+  const [scenes, setScenes] = useState<RouteScene<T>[]>([{ id: 1, route: currentRoute }]);
   const sceneIdRef = useRef(1);
   const transitionTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [route]);
+  }, [currentRoute]);
 
   useEffect(() => {
     return () => {
@@ -47,26 +44,18 @@ export default function RouteSwiper<T extends string>({
   }, []);
 
   useEffect(() => {
-    const handlePopState = () => {
-      if (transitionTimeoutRef.current !== null) {
-        window.clearTimeout(transitionTimeoutRef.current);
-        transitionTimeoutRef.current = null;
-      }
+    if (scenes.length > 1) {
+      return;
+    }
 
-      const nextRoute = getRouteFromPath(window.location.pathname);
-      const nextSceneId = sceneIdRef.current + 1;
-      sceneIdRef.current = nextSceneId;
+    if (scenes[0]?.route === currentRoute) {
+      return;
+    }
 
-      setRoute(nextRoute);
-      setScenes([{ id: nextSceneId, route: nextRoute }]);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [getRouteFromPath]);
+    const nextSceneId = sceneIdRef.current + 1;
+    sceneIdRef.current = nextSceneId;
+    setScenes([{ id: nextSceneId, route: currentRoute }]);
+  }, [currentRoute, scenes]);
 
   const finalizarTransicion = (sceneId: number, nextRoute: T, durationMs: number) => {
     if (transitionTimeoutRef.current !== null) {
@@ -80,41 +69,28 @@ export default function RouteSwiper<T extends string>({
   };
 
   const navigate = (nextRoute: T) => {
-    if (scenes.length > 1) {
-      return;
-    }
-
-    const nextPath = getPathFromRoute(nextRoute);
-    const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
-
-    if (currentPath !== nextPath) {
-      window.history.pushState({}, '', nextPath);
-    }
-
-    if (route === nextRoute) {
+    if (scenes.length > 1 || currentRoute === nextRoute) {
       return;
     }
 
     const transition = transitions.find(
-      (candidate) => candidate.from === route && candidate.to === nextRoute,
+      (candidate) => candidate.from === currentRoute && candidate.to === nextRoute,
     );
 
-    const nextSceneId = sceneIdRef.current + 1;
-    sceneIdRef.current = nextSceneId;
-
     if (!transition) {
-      setRoute(nextRoute);
-      setScenes([{ id: nextSceneId, route: nextRoute }]);
+      onNavigate(nextRoute);
       return;
     }
 
     const currentScene = scenes[0];
+    const nextSceneId = sceneIdRef.current + 1;
+    sceneIdRef.current = nextSceneId;
 
-    setRoute(nextRoute);
     setScenes([
       { ...currentScene, animationClass: transition.leaveClass },
       { id: nextSceneId, route: nextRoute, animationClass: transition.enterClass },
     ]);
+    onNavigate(nextRoute);
     finalizarTransicion(nextSceneId, nextRoute, transition.durationMs);
   };
 

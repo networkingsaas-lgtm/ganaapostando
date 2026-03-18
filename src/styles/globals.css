@@ -461,6 +461,51 @@ html, body {
   animation: map-card-shine 8s ease-in-out infinite;
 }
 
+.sidebar-loupe-slider {
+  width: calc((100% - (2 * var(--loupe-pad, 0px))) / var(--loupe-count, 5));
+  left: var(--loupe-pad, 0px);
+  transform: translateX(calc(var(--loupe-index, 0) * 100%));
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease-out;
+  opacity: 0.35;
+  will-change: transform, opacity;
+}
+
+nav[data-loupe-direction='right'] .sidebar-loupe-slider {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+nav[data-loupe-direction='left'] .sidebar-loupe-slider {
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0.22, 1);
+}
+
+@keyframes roadmap-skip-hint-drift-right {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+}
+
+@keyframes roadmap-skip-hint-drift-left {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-8px);
+  }
+}
+
+.roadmap-skip-hint-right {
+  animation: roadmap-skip-hint-drift-right 1.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.roadmap-skip-hint-left {
+  animation: roadmap-skip-hint-drift-left 1.8s ease-in-out infinite;
+  will-change: transform;
+}
+
 @media (min-width: 640px) {
   .rebel-underline {
     padding-bottom: 0.1em;
@@ -492,7 +537,9 @@ html, body {
   .route-swiper-leave-left,
   .route-swiper-enter-right,
   .route-swiper-leave-right,
-  .route-swiper-enter-left {
+  .route-swiper-enter-left,
+  .roadmap-skip-hint-right,
+  .roadmap-skip-hint-left {
     animation: none !important;
   }
 }

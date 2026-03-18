@@ -1,13 +1,28 @@
 import { Check, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import ScrollReveal from '../components/shared/ScrollReveal';
-import HeaderTitle from '../components/ui/HeaderTitle';
-import PricingMobileSwiper from '../components/pricing/PricingMobileSwiper';
-import { pricingPlans } from '../features/pricing/plans';
+import { useNavigate } from 'react-router-dom';
+import PricingMobileSwiper from '../../pricing/components/PricingMobileSwiper';
+import { pricingPlans } from '../../pricing/plans';
+import HeaderTitle from '../../../shared/components/HeaderTitle';
+import ScrollReveal from '../../../shared/components/ScrollReveal';
 
-export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: number }) {
+const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/test_14AcN5fLB0ftgjF6OrcIE00';
+
+interface Props {
+  flashButtonsKey?: number;
+  startMode?: 'register' | 'stripe';
+  theme?: 'dark' | 'light';
+}
+
+export default function PricingSection({
+  flashButtonsKey = 0,
+  startMode = 'register',
+  theme = 'dark',
+}: Props) {
+  const navigate = useNavigate();
   const [planModal, setPlanModal] = useState<null | { name: string; content: string[] }>(null);
   const [animClass, setAnimClass] = useState('');
+  const isLightTheme = theme === 'light';
 
   useEffect(() => {
     if (flashButtonsKey === 0) return;
@@ -18,29 +33,48 @@ export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: num
   }, [flashButtonsKey]);
   const plans = pricingPlans;
 
+  const handleStartNow = () => {
+    if (startMode === 'stripe') {
+      window.open(STRIPE_CHECKOUT_URL, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    navigate('/registro');
+  };
+
   return (
     <section id="pricing" className="relative overflow-hidden py-12 sm:py-20 section-padding">
-      <div
-        className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-20"
-        style={{ backgroundImage: "url('/pricing-bg.png')" }}
-        aria-hidden="true"
-      />
+      {!isLightTheme && (
+        <div
+          className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-20"
+          style={{ backgroundImage: "url('/pricing-bg.png')" }}
+          aria-hidden="true"
+        />
+      )}
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="text-center mb-10 sm:mb-16">
           <HeaderTitle
             as="h2"
             uppercase={true}
             lineHeightClass="leading-[1.12] sm:leading-[1.06]"
-            className="heading-lg sm:heading-xl font-bold text-white mb-4"
+            className={`heading-lg sm:heading-xl font-bold mb-4 ${
+              isLightTheme ? 'text-slate-900' : 'text-white'
+            }`}
           >
             Invierte en Tu Educación Financiera
           </HeaderTitle>
-          <p className="body-text text-white/85 max-w-3xl mx-auto">
+          <p className={`body-text max-w-3xl mx-auto ${isLightTheme ? 'text-slate-600' : 'text-white/85'}`}>
             Elige el nivel que mejor se adapte a tus objetivos.
           </p>
         </div>
 
-        <PricingMobileSwiper plans={plans} animClass={animClass} onOpenPlan={setPlanModal} />
+        <PricingMobileSwiper
+          plans={plans}
+          animClass={animClass}
+          onOpenPlan={setPlanModal}
+          onStartNow={handleStartNow}
+          theme={theme}
+        />
 
         <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 pt-6 sm:pt-7 pb-0">
           {plans.map((plan, index) => (
@@ -114,10 +148,9 @@ export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: num
                   </button>
                 )}
 
-                <a
-                  href="https://buy.stripe.com/test_14AcN5fLB0ftgjF6OrcIE00"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={handleStartNow}
                   className={`block w-full py-4 rounded-lg font-semibold transition-all mb-8 text-center ${
                     plan.highlighted
                       ? 'bg-white text-blue-600 hover:bg-gray-100'
@@ -126,7 +159,7 @@ export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: num
                   style={animClass ? { animationDelay: `${0.9 + index * 0.15}s` } : undefined}
                 >
                   Comenzar Ahora
-                </a>
+                </button>
 
                 <div className="space-y-4">
                   {plan.features.map((feature, idx) => {
@@ -150,7 +183,7 @@ export default function Pricing({ flashButtonsKey = 0 }: { flashButtonsKey?: num
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-white/80 mb-4">
+          <p className={`mb-4 ${isLightTheme ? 'text-slate-600' : 'text-white/80'}`}>
             ¿No estás seguro? Mira casos de éxito reales y testimonios de estudiantes antes de decidir. Tu inversión en educación es la mejor apuesta que puedes hacer.
           </p>
         </div>

@@ -1,6 +1,6 @@
-import type { EstudianteCard } from '../../features/estudiante/types';
-import ScrollReveal from '../shared/ScrollReveal';
-import HeaderTitle from '../ui/HeaderTitle';
+import type { EstudianteCard } from '../types';
+import HeaderTitle from '../../../shared/components/HeaderTitle';
+import ScrollReveal from '../../../shared/components/ScrollReveal';
 
 interface Props {
   cards: EstudianteCard[];

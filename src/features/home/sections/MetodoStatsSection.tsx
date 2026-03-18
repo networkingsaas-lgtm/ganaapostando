@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import HeroStatsCards from '../components/hero/HeroStatsCards';
-import HeaderTitle from '../components/ui/HeaderTitle';
-import TitleHighlightReverse from '../components/ui/TitleHighlightReverse';
-import { useCountUp } from '../hooks/useCountUp';
-import { usuarios } from '../features/resultados/data';
+import HeroStatsCards from '../components/HeroStatsCards';
+import { usuarios } from '../../resultados/data';
+import HeaderTitle from '../../../shared/components/HeaderTitle';
+import TitleHighlightReverse from '../../../shared/components/TitleHighlightReverse';
+import { useCountUp } from '../../../shared/hooks/useCountUp';
 
 const roiMedio = usuarios.reduce((acc, u) => acc + (u.beneficioTotal / u.inversion) * 100, 0) / usuarios.length;
 const gananciaTotal = usuarios.reduce((acc, u) => acc + u.beneficioTotal, 0);
@@ -13,7 +13,7 @@ interface Props {
   onVerResultados: () => void;
 }
 
-export default function MetodoStats({ onVerResultados }: Props) {
+export default function MetodoStatsSection({ onVerResultados }: Props) {
   const statsRef = useRef<HTMLDivElement>(null);
   const [startCountUp, setStartCountUp] = useState(false);
   const [cardsVisible, setCardsVisible] = useState(false);
@@ -34,8 +34,8 @@ export default function MetodoStats({ onVerResultados }: Props) {
   }, []);
 
   useEffect(() => {
-    const el = statsRef.current;
-    if (!el) return;
+    const element = statsRef.current;
+    if (!element) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -44,10 +44,10 @@ export default function MetodoStats({ onVerResultados }: Props) {
         setStartCountUp(true);
         observer.unobserve(entry.target);
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
-    observer.observe(el);
+    observer.observe(element);
     return () => observer.disconnect();
   }, []);
 
@@ -73,7 +73,8 @@ export default function MetodoStats({ onVerResultados }: Props) {
             Aquí no <TitleHighlightReverse inverted>incentivamos</TitleHighlightReverse> el juego, sino <TitleHighlightReverse inverted>el aprendizaje</TitleHighlightReverse>
           </HeaderTitle>
           <p className="text-base sm:text-xl text-white/85">
-              Cuando conoces los trucos y artimañas que utilizamos en <span className="rebel-underline"> El Método,</span> entiendes que apostar sin estrategia es perder. Por eso queremos enseñarte a ganar, igual que a nuestros alumnos:          </p>
+            Cuando conoces los trucos y artimañas que utilizamos en <span className="rebel-underline"> El Método,</span> entiendes que apostar sin estrategia es perder. Por eso queremos enseñarte a ganar, igual que a nuestros alumnos:
+          </p>
         </div>
 
         <div ref={statsRef} className="mt-8 sm:mt-12">
@@ -85,7 +86,6 @@ export default function MetodoStats({ onVerResultados }: Props) {
             onVerResultados={onVerResultados}
           />
         </div>
-
       </div>
 
       <p className="absolute inset-x-0 bottom-4 z-10 px-4 text-center text-[11px] sm:text-xs text-white/70">
