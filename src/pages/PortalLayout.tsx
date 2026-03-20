@@ -55,6 +55,11 @@ export default function PortalLayout({ onVolver }: Props) {
   const isMapView = currentSubRoute === 'mapa';
   const isSettingsView = currentSubRoute === 'ajustes';
   const usesLightSurface = isMapView || isSettingsView;
+  const portalSurfaceClass = isSettingsView
+    ? 'bg-[#f2f2f7] text-slate-900'
+    : usesLightSurface
+      ? 'bg-white text-slate-900'
+      : 'bg-[#071724] text-white';
 
   const openLogoutConfirm = () => {
     if (logoutModalTimeoutRef.current !== null) {
@@ -85,7 +90,7 @@ export default function PortalLayout({ onVolver }: Props) {
   };
 
   return (
-    <div className={`min-h-screen overflow-hidden ${usesLightSurface ? 'bg-white text-slate-900' : 'bg-[#071724] text-white'}`}>
+    <div className={`min-h-screen overflow-hidden ${portalSurfaceClass}`}>
       {!usesLightSurface && (
         <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.14),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(91,194,255,0.18),_transparent_24%)]" />
       )}

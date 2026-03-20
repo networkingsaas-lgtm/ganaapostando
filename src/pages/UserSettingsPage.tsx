@@ -1,20 +1,36 @@
 import type { User } from '@supabase/supabase-js';
 import { CircleAlert, LoaderCircle } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import PricingSection from '../features/home/sections/PricingSection';
+import { getRoadmapLayerTheme } from '../features/roadmap/constants';
 import { getAuthenticatedUserLabel } from '../features/portal-shell/utils';
 import type { LayerSection } from '../features/roadmap/types';
 import { useRoadmapData } from '../features/roadmap/hooks/useRoadmapData';
 import { getSupabaseClient } from '../lib/supabase';
 import HeaderTitle from '../shared/components/HeaderTitle';
 
+type BatterySlot = 1 | 2 | 3 | 4 | 5;
+
+interface PurchasedSlotInfo {
+  fill: string;
+  border: string;
+  glow: string;
+  layerTitle: string;
+}
+
 interface PurchasedCourseSummary {
   courseId: number;
   courseTitle: string;
-  totalLayers: number;
-  purchasedLayers: string[];
-  unlockedLessons: number;
-  totalLessons: number;
+  purchasedSlotCount: number;
+  slotDetails: Partial<Record<BatterySlot, PurchasedSlotInfo>>;
+}
+
+interface ActiveBatteryBubble {
+  courseId: number;
+  slot: BatterySlot;
+  anchorX: number;
+  anchorY: number;
 }
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('es-ES', {
@@ -36,39 +52,54 @@ const formatDateTime = (value: string | null) => {
   return DATE_TIME_FORMATTER.format(parsedDate);
 };
 
-const toPurchasedCourses = (layers: LayerSection[]): PurchasedCourseSummary[] => {
+const MAX_BATTERY_SLOTS = 5;
+
+const toPurchasedCourses = (
+  layers: LayerSection[],
+  layerPaletteById: Map<number, { fill: string; border: string; glow: string }>,
+): PurchasedCourseSummary[] => {
   const byCourseId = new Map<
     number,
     {
       courseTitle: string;
-      totalLayers: number;
-      totalLessons: number;
-      unlockedLessons: number;
-      purchasedLayerSet: Set<string>;
+      purchasedSlots: Map<BatterySlot, PurchasedSlotInfo>;
+      layerCountSeen: number;
     }
   >();
 
   for (const section of layers) {
-    const hasPurchasedLayer = section.lessons.some((lessonNode) =>
-      Boolean(lessonNode.access?.entitlement),
+    const hasPurchasedLayer = section.lessons.some(
+      (lessonNode) => lessonNode.reason === 'entitled' || Boolean(lessonNode.access?.entitlement),
     );
-    const unlockedLessonsInLayer = section.lessons.filter(
-      (lessonNode) => lessonNode.isUnlocked && lessonNode.reason !== 'preview',
-    ).length;
+
     const existingCourse = byCourseId.get(section.courseId) ?? {
       courseTitle: section.courseTitle,
-      totalLayers: 0,
-      totalLessons: 0,
-      unlockedLessons: 0,
-      purchasedLayerSet: new Set<string>(),
+      purchasedSlots: new Map<BatterySlot, PurchasedSlotInfo>(),
+      layerCountSeen: 0,
     };
 
-    existingCourse.totalLayers += 1;
-    existingCourse.totalLessons += section.lessons.length;
-    existingCourse.unlockedLessons += unlockedLessonsInLayer;
+    const inferredLayerPosition =
+      typeof section.layer.position === 'number' && Number.isFinite(section.layer.position)
+        ? section.layer.position
+        : existingCourse.layerCountSeen + 1;
+
+    const slotNumber = Math.min(
+      MAX_BATTERY_SLOTS,
+      Math.max(1, Math.trunc(inferredLayerPosition)),
+    ) as BatterySlot;
+
+    existingCourse.layerCountSeen += 1;
 
     if (hasPurchasedLayer) {
-      existingCourse.purchasedLayerSet.add(section.layer.title);
+      const palette = layerPaletteById.get(section.layer.id);
+      existingCourse.purchasedSlots.set(slotNumber, {
+        fill:
+          palette?.fill ??
+          'linear-gradient(180deg,hsl(142 76% 74%) 0%,hsl(142 70% 55%) 100%)',
+        border: palette?.border ?? 'hsl(142 68% 34%)',
+        glow: palette?.glow ?? '0 8px 16px hsla(142 76% 42% / 0.35)',
+        layerTitle: section.layer.title,
+      });
     }
 
     byCourseId.set(section.courseId, existingCourse);
@@ -78,15 +109,15 @@ const toPurchasedCourses = (layers: LayerSection[]): PurchasedCourseSummary[] =>
     .map(([courseId, course]) => ({
       courseId,
       courseTitle: course.courseTitle,
-      totalLayers: course.totalLayers,
-      purchasedLayers: Array.from(course.purchasedLayerSet),
-      unlockedLessons: course.unlockedLessons,
-      totalLessons: course.totalLessons,
+      purchasedSlotCount: course.purchasedSlots.size,
+      slotDetails: Object.fromEntries(course.purchasedSlots.entries()) as Partial<
+        Record<BatterySlot, PurchasedSlotInfo>
+      >,
     }))
-    .filter((course) => course.purchasedLayers.length > 0)
+    .filter((course) => course.purchasedSlotCount > 0)
     .sort(
       (left, right) =>
-        right.purchasedLayers.length - left.purchasedLayers.length ||
+        right.purchasedSlotCount - left.purchasedSlotCount ||
         left.courseTitle.localeCompare(right.courseTitle, 'es'),
     );
 };
@@ -95,6 +126,10 @@ export default function UserSettingsPage() {
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [userError, setUserError] = useState<string | null>(null);
+  const [activeBatteryBubble, setActiveBatteryBubble] = useState<ActiveBatteryBubble | null>(null);
+  const [bubbleShift, setBubbleShift] = useState(0);
+  const [bubbleArrowOffset, setBubbleArrowOffset] = useState(0);
+  const activeBubbleRef = useRef<HTMLDivElement | null>(null);
   const {
     isLoading: isCoursesLoading,
     error: coursesError,
@@ -142,26 +177,105 @@ export default function UserSettingsPage() {
     };
   }, []);
 
+  const recomputeBubblePosition = useCallback(() => {
+    const bubbleElement = activeBubbleRef.current;
+
+    if (!bubbleElement) {
+      setBubbleShift(0);
+      setBubbleArrowOffset(0);
+      return;
+    }
+
+    const rect = bubbleElement.getBoundingClientRect();
+    const viewportPadding = 8;
+    const leftBoundary = viewportPadding;
+    const rightBoundary = window.innerWidth - viewportPadding;
+    const leftOverflow = Math.max(0, leftBoundary - rect.left);
+    const rightOverflow = Math.max(0, rect.right - rightBoundary);
+    const shift = leftOverflow - rightOverflow;
+    const maxArrowOffset = Math.max(0, rect.width / 2 - 18);
+    const arrowOffset = Math.max(-maxArrowOffset, Math.min(maxArrowOffset, -shift));
+
+    setBubbleShift(shift);
+    setBubbleArrowOffset(arrowOffset);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!activeBatteryBubble) {
+      setBubbleShift(0);
+      setBubbleArrowOffset(0);
+      return;
+    }
+
+    recomputeBubblePosition();
+  }, [activeBatteryBubble, recomputeBubblePosition]);
+
+  useEffect(() => {
+    if (!activeBatteryBubble) {
+      return;
+    }
+
+    const handleResize = () => {
+      recomputeBubblePosition();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [activeBatteryBubble, recomputeBubblePosition]);
+
   const userLabel = useMemo(() => getAuthenticatedUserLabel(authUser), [authUser]);
-  const purchasedCourses = useMemo(() => toPurchasedCourses(layers), [layers]);
+
+  const layerPaletteById = useMemo(() => {
+    const nextMap = new Map<number, { fill: string; border: string; glow: string }>();
+
+    layers.forEach((section, sectionIndex) => {
+      const theme = getRoadmapLayerTheme(sectionIndex, layers.length);
+      nextMap.set(section.layer.id, {
+        fill: theme.nodeUnlocked.face,
+        border: theme.nodeUnlocked.sideBorder,
+        glow: theme.nodeUnlocked.glow,
+      });
+    });
+
+    return nextMap;
+  }, [layers]);
+
+  const purchasedCourses = useMemo(
+    () => toPurchasedCourses(layers, layerPaletteById),
+    [layers, layerPaletteById],
+  );
+  const activeBubbleCourse = useMemo(
+    () =>
+      activeBatteryBubble
+        ? purchasedCourses.find((course) => course.courseId === activeBatteryBubble.courseId) ?? null
+        : null,
+    [activeBatteryBubble, purchasedCourses],
+  );
+  const activeSlotInfo =
+    activeBatteryBubble && activeBubbleCourse
+      ? activeBubbleCourse.slotDetails[activeBatteryBubble.slot]
+      : undefined;
 
   return (
-    <div className="space-y-6 bg-white text-slate-900">
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+    <div className="m-0 space-y-6 bg-transparent p-0 text-slate-900" onClick={() => setActiveBatteryBubble(null)}>
+      <section className="relative z-30 overflow-visible rounded-[1.75rem] border border-[#d9d9de] bg-white/90 p-5 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
         <HeaderTitle
           as="h1"
           uppercase={false}
           lineHeightClass="leading-[1.1]"
-          className="text-2xl font-black text-slate-900 sm:text-4xl"
+          className="text-2xl font-black tracking-[-0.015em] text-[#111827] sm:text-4xl"
         >
-          Ajustes de Usuario
+          Ajustes de <span className="title-span-highlight">Usuarios</span>
         </HeaderTitle>
-        <p className="mt-2 text-sm text-slate-600 sm:text-base">
+        <p className="mt-2 text-sm text-[#6b7280] sm:text-base">
           Consulta tus datos de inicio de sesion y el estado de tu cuenta autenticada.
         </p>
 
         {isUserLoading && (
-          <div className="mt-6 flex items-center gap-3 text-slate-600">
+          <div className="mt-6 flex items-center gap-3 rounded-2xl bg-[#f5f6fa] px-4 py-3 text-[#4b5563]">
             <LoaderCircle className="h-5 w-5 animate-spin" />
             <span>Cargando datos del usuario...</span>
           </div>
@@ -174,24 +288,26 @@ export default function UserSettingsPage() {
         )}
 
         {!isUserLoading && !userError && (
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Usuario</p>
-              <p className="mt-1 text-base font-semibold text-slate-900">{userLabel}</p>
+          <div className="mt-6 overflow-hidden rounded-[1.35rem] border border-[#e5e7eb] bg-white shadow-[0_8px_18px_rgba(17,24,39,0.04)]">
+            <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
+              <p className="text-sm font-medium text-[#374151]">Usuario</p>
+              <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">{userLabel}</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Email</p>
-              <p className="mt-1 text-base font-semibold text-slate-900">{authUser?.email ?? 'No disponible'}</p>
+            <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
+              <p className="text-sm font-medium text-[#374151]">Email</p>
+              <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
+                {authUser?.email ?? 'No disponible'}
+              </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Ultimo acceso</p>
-              <p className="mt-1 text-base font-semibold text-slate-900">
+            <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
+              <p className="text-sm font-medium text-[#374151]">Ultimo acceso</p>
+              <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
                 {formatDateTime(authUser?.last_sign_in_at ?? null)}
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Cuenta creada</p>
-              <p className="mt-1 text-base font-semibold text-slate-900">
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
+              <p className="text-sm font-medium text-[#374151]">Cuenta creada</p>
+              <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
                 {formatDateTime(authUser?.created_at ?? null)}
               </p>
             </div>
@@ -199,21 +315,21 @@ export default function UserSettingsPage() {
         )}
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-[1.75rem] border border-[#d9d9de] bg-white/90 p-5 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
         <HeaderTitle
           as="h2"
           uppercase={false}
           lineHeightClass="leading-[1.1]"
-          className="text-xl font-black text-slate-900 sm:text-3xl"
+          className="text-xl font-black tracking-[-0.015em] text-[#111827] sm:text-3xl"
         >
-          Cursos Comprados
+          Cursos <span className="title-span-highlight">Comprados</span>
         </HeaderTitle>
-        <p className="mt-2 text-sm text-slate-600 sm:text-base">
+        <p className="mt-2 text-sm text-[#6b7280] sm:text-base">
           Aqui puedes ver los cursos y capas que tu cuenta tiene desbloqueados.
         </p>
 
         {isCoursesLoading && (
-          <div className="mt-6 flex items-center gap-3 text-slate-600">
+          <div className="mt-6 flex items-center gap-3 rounded-2xl bg-[#f5f6fa] px-4 py-3 text-[#4b5563]">
             <LoaderCircle className="h-5 w-5 animate-spin" />
             <span>Cargando cursos comprados...</span>
           </div>
@@ -227,39 +343,117 @@ export default function UserSettingsPage() {
         )}
 
         {!isCoursesLoading && !coursesError && purchasedCourses.length === 0 && (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          <div className="mt-6 rounded-2xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-sm text-[#6b7280]">
             No se detectaron cursos comprados para este usuario.
           </div>
         )}
 
         {!isCoursesLoading && !coursesError && purchasedCourses.length > 0 && (
-          <div className="mt-6 grid gap-3 lg:grid-cols-2">
+          <div className="relative z-30 mt-5 space-y-3 overflow-visible">
             {purchasedCourses.map((course) => (
-              <article key={course.courseId} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 text-base font-bold text-slate-900">{course.courseTitle}</p>
-                  <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                    {course.purchasedLayers.length}/{course.totalLayers} capas
-                  </span>
-                </div>
+              <div
+                key={course.courseId}
+                className="relative z-40 overflow-visible"
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+              >
+                <div className="relative rounded-[1.05rem] border-2 border-[#c8ced8] bg-[#f8fafc] px-3 py-3 pr-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-3.5 sm:py-3.5">
+                  <div className="grid grid-cols-5 gap-2 sm:gap-2.5">
+                    {[1, 2, 3, 4, 5].map((slot) => {
+                      const typedSlot = slot as BatterySlot;
+                      const slotInfo = course.slotDetails[typedSlot];
+                      const isFilled = Boolean(slotInfo);
+                      const isActive =
+                        activeBatteryBubble?.courseId === course.courseId &&
+                        activeBatteryBubble?.slot === typedSlot;
 
-                <p className="mt-3 text-sm text-slate-600">
-                  <span className="font-semibold text-slate-700">Lecciones desbloqueadas:</span>{' '}
-                  {course.unlockedLessons} de {course.totalLessons}
-                </p>
-                <p className="mt-2 text-sm text-slate-600">
-                  <span className="font-semibold text-slate-700">Capas compradas:</span>{' '}
-                  {course.purchasedLayers.join(' | ')}
-                </p>
-              </article>
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          disabled={!isFilled}
+                          onClick={(event) => {
+                            event.stopPropagation();
+
+                            if (!isFilled) {
+                              return;
+                            }
+
+                            const slotRect = event.currentTarget.getBoundingClientRect();
+
+                            setActiveBatteryBubble((current) => {
+                              if (
+                                current &&
+                                current.courseId === course.courseId &&
+                                current.slot === typedSlot
+                              ) {
+                                return null;
+                              }
+
+                              return {
+                                courseId: course.courseId,
+                                slot: typedSlot,
+                                anchorX: slotRect.left + slotRect.width / 2,
+                                anchorY: slotRect.bottom,
+                              };
+                            });
+                          }}
+                          className={`h-10 rounded-[0.55rem] border transition-all duration-300 sm:h-11 ${
+                            isFilled ? 'cursor-pointer' : 'cursor-default'
+                          } ${isActive ? 'ring-2 ring-offset-1 ring-[#1d4ed8]/35' : ''}`}
+                          style={{
+                            background: isFilled ? slotInfo?.fill : '#d1d5db',
+                            borderColor: isFilled ? slotInfo?.border : '#c6cbd3',
+                            boxShadow: isFilled ? slotInfo?.glow : 'none',
+                          }}
+                          aria-label={`Slot ${slot} ${isFilled ? 'comprado' : 'sin comprar'}`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <span
+                    className="absolute right-2 top-1/2 h-10 w-1.5 -translate-y-1/2 rounded-r bg-[#c5cad3] sm:h-11"
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
             ))}
           </div>
         )}
       </section>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <section className="relative z-10 overflow-hidden rounded-[1.75rem] border border-[#d9d9de] bg-white/90 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur">
         <PricingSection startMode="stripe" theme="light" />
       </section>
+      {activeBatteryBubble &&
+        activeSlotInfo &&
+        createPortal(
+          <div
+            ref={activeBubbleRef}
+            className="fixed z-[2147483647] w-[300px] max-w-[calc(100vw-16px)] rounded-3xl border bg-white p-5 text-left shadow-[0_16px_30px_rgba(15,23,42,0.16)] sm:w-[360px]"
+            style={{
+              borderColor: '#9cc3ff',
+              left: `${activeBatteryBubble.anchorX}px`,
+              top: `${activeBatteryBubble.anchorY + 12}px`,
+              transform: `translateX(calc(-50% + ${bubbleShift}px))`,
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <span
+              className="absolute -top-2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t bg-white"
+              style={{
+                borderColor: '#9cc3ff',
+                left: `calc(50% + ${bubbleArrowOffset}px)`,
+              }}
+            />
+            <p className="text-base font-black text-[#111827] sm:text-lg">{activeSlotInfo.layerTitle}</p>
+            <p className="mt-1 text-sm text-[#6b7280]">Capa {activeBatteryBubble.slot} comprada</p>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
