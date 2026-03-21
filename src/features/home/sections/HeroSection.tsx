@@ -110,7 +110,7 @@ export default function HeroSection({ onLoginSuccess, onVerResultados, onRegistr
 
   return (
     <>
-      <section className="hero-startup-bg startup-font relative overflow-hidden pb-12 text-white sm:pb-16 section-padding">
+      <section className="heroSection hero-startup-bg startup-font relative overflow-hidden pb-12 text-white sm:pb-16 section-padding">
         <div
           className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-[0.20]"
           style={{
@@ -143,7 +143,7 @@ export default function HeroSection({ onLoginSuccess, onVerResultados, onRegistr
           <div className="mx-auto max-w-5xl space-y-8 text-center sm:space-y-10">
             <PageReveal delay={100}>
               <HeaderTitle as="h1" className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-[0.95]">
-                CONVIERTE LAS <span className="text-white">APUESTAS</span> DEPORTIVAS EN <span className="title-span-highlight title-span-highlight-reverse-green">INGRESOS REALES</span>
+                CONVIERTE LAS <span className="text-white">APUESTAS</span> DEPORTIVAS EN <span className="title-span-highlight title-span-highlight-reverse">INGRESOS REALES</span>
               </HeaderTitle>
             </PageReveal>
 

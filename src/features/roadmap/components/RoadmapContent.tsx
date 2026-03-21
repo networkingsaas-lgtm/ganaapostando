@@ -88,8 +88,10 @@ export default function RoadmapContent({
   const [isProPromoDismissed, setIsProPromoDismissed] = useState(false);
   const [bubbleShift, setBubbleShift] = useState(0);
   const [bubbleArrowOffset, setBubbleArrowOffset] = useState(0);
+  const hasAutoScrolledToUnlockedLayerRef = useRef(false);
   const contentBoundsRef = useRef<HTMLDivElement | null>(null);
   const activeBubbleRef = useRef<HTMLDivElement | null>(null);
+  const layerSectionRefs = useRef<Record<number, HTMLElement | null>>({});
   const layerStartById = useMemo(() => {
     const starts = new Map<number, number>();
     let runningTotal = 0;
@@ -201,6 +203,33 @@ export default function RoadmapContent({
       window.removeEventListener('resize', handleResize);
     };
   }, [activeBubble, recomputeBubblePosition]);
+
+  useEffect(() => {
+    if (isLoading || error || hasAutoScrolledToUnlockedLayerRef.current || layers.length === 0) {
+      return;
+    }
+
+    const unlockedLayerWithEntitlement = layers.find((section) =>
+      section.lessons.some((lessonNode) => Boolean(lessonNode.access?.entitlement)),
+    );
+    const fallbackUnlockedLayer = layers.find((section) =>
+      section.lessons.some((lessonNode) => lessonNode.isUnlocked),
+    );
+    const targetLayer = unlockedLayerWithEntitlement ?? fallbackUnlockedLayer;
+
+    if (!targetLayer) {
+      return;
+    }
+
+    const targetElement = layerSectionRefs.current[targetLayer.layer.id];
+
+    if (!targetElement) {
+      return;
+    }
+
+    hasAutoScrolledToUnlockedLayerRef.current = true;
+    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [isLoading, error, layers]);
 
   return (
     <PageReveal
@@ -342,6 +371,9 @@ export default function RoadmapContent({
                 <section
                   key={section.layer.id}
                   className="relative w-full overflow-visible bg-transparent"
+                  ref={(element) => {
+                    layerSectionRefs.current[section.layer.id] = element;
+                  }}
                 >
                   <ScrollReveal
                     className="relative z-20 px-2 pt-2 sm:px-4"

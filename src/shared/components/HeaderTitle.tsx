@@ -8,6 +8,7 @@ interface Props {
   uppercase?: boolean;
   lineHeightClass?: string;
   style?: CSSProperties;
+  useImpactFont?: boolean;
 }
 
 export default function HeaderTitle({
@@ -17,11 +18,12 @@ export default function HeaderTitle({
   uppercase = true,
   lineHeightClass = 'leading-[0.95]',
   style,
+  useImpactFont = true,
 }: Props) {
   const Tag = as;
   return (
     <Tag
-      className={`hero-impact-font ${uppercase ? 'uppercase' : ''} ${lineHeightClass} ${className}`.trim()}
+      className={`${useImpactFont ? 'hero-impact-font' : ''} ${uppercase ? 'uppercase' : ''} ${lineHeightClass} ${className}`.trim()}
       style={style}
     >
       {children}

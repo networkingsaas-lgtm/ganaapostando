@@ -247,6 +247,19 @@ export default function UserSettingsPage() {
     () => toPurchasedCourses(layers, layerPaletteById),
     [layers, layerPaletteById],
   );
+  const purchasedLayersCount = useMemo(
+    () =>
+      layers.filter((section) =>
+        section.lessons.some(
+          (lessonNode) => lessonNode.reason === 'entitled' || Boolean(lessonNode.access?.entitlement),
+        ),
+      ).length,
+    [layers],
+  );
+  const totalLayersCount = useMemo(
+    () => layers.length,
+    [layers],
+  );
   const activeBubbleCourse = useMemo(
     () =>
       activeBatteryBubble
@@ -327,6 +340,11 @@ export default function UserSettingsPage() {
         <p className="mt-2 text-sm text-[#6b7280] sm:text-base">
           Aqui puedes ver los cursos y capas que tu cuenta tiene desbloqueados.
         </p>
+        {!isCoursesLoading && !coursesError && totalLayersCount > 0 && (
+          <p className="mt-2 text-right text-xs font-semibold text-[#6b7280] sm:text-sm">
+            {purchasedLayersCount}/{totalLayersCount}
+          </p>
+        )}
 
         {isCoursesLoading && (
           <div className="mt-6 flex items-center gap-3 rounded-2xl bg-[#f5f6fa] px-4 py-3 text-[#4b5563]">
@@ -358,7 +376,7 @@ export default function UserSettingsPage() {
                   event.stopPropagation();
                 }}
               >
-                <div className="relative rounded-[1.05rem] border-2 border-[#c8ced8] bg-[#f8fafc] px-3 py-3 pr-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-3.5 sm:py-3.5">
+                <div className="relative rounded-[1.05rem] border-2 border-[#c8ced8] bg-[#f8fafc] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-3.5 sm:py-3.5">
                   <div className="grid grid-cols-5 gap-2 sm:gap-2.5">
                     {[1, 2, 3, 4, 5].map((slot) => {
                       const typedSlot = slot as BatterySlot;
@@ -412,11 +430,11 @@ export default function UserSettingsPage() {
                       );
                     })}
                   </div>
-                  <span
-                    className="absolute right-2 top-1/2 h-10 w-1.5 -translate-y-1/2 rounded-r bg-[#c5cad3] sm:h-11"
-                    aria-hidden="true"
-                  />
                 </div>
+                <span
+                  className="pointer-events-none absolute -right-1 top-1/2 h-7 w-1.5 -translate-y-1/2 rounded-r bg-[#c5cad3] sm:h-8"
+                  aria-hidden="true"
+                />
               </div>
             ))}
           </div>

@@ -25,8 +25,8 @@ function renderTitleWithHighlight(title: string, highlightText?: string) {
 export default function MedievalBannerCards({ cards }: Props) {
   const cardRedDark = '#a40015';
   const cardRedLight = '#cf0018';
-  const cardGold = '#f2a900';
-  const cardIndexGold = '#f6c62f';
+  const cardGold = '#ffff';
+  const cardIndexGold = '#ffff';
 
   return (
     <div className="mt-7 sm:mt-10 space-y-2.5 sm:space-y-3">

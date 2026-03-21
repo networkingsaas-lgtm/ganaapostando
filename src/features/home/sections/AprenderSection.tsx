@@ -25,11 +25,10 @@ export default function AprenderSection() {
 
         hasStartedSequenceRef.current = true;
 
-        aprenderCards.forEach((_, index) => {
+        [0, 2].forEach((index, sequenceIndex) => {
           const timeoutId = window.setTimeout(() => {
             markCardAsRevealed(index);
-          }, index * revealStepDelay);
-
+          }, sequenceIndex * revealStepDelay);
           timeoutIds.push(timeoutId);
         });
 
@@ -51,6 +50,7 @@ export default function AprenderSection() {
       <div className="max-w-7xl mx-auto">
         <div className="max-w-4xl text-left">
           <HeaderTitle
+            useImpactFont={true}
             as="h2"
             lineHeightClass="leading-[1.16] sm:leading-[1.1]"
             className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4"

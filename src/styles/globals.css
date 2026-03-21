@@ -10,13 +10,29 @@
     linear-gradient(165deg, rgba(156, 222, 255, 0.32) 0 1px, rgba(156, 222, 255, 0) 1px 16px),
     linear-gradient(165deg, rgba(72, 169, 255, 0.28) 0 2px, rgba(72, 169, 255, 0) 2px 26px),
     radial-gradient(68% 74% at 8% 100%, rgba(4, 20, 124, 0.95) 0%, rgba(4, 20, 124, 0) 70%),
-    radial-gradient(58% 66% at 100% 84%, rgba(76, 36, 188, 0.52) 0%, rgba(76, 36, 188, 0) 62%),
+    
     linear-gradient(142deg, #020b4a 0%, #041a78 32%, #0a2f9f 62%, #13277a 100%);
 
-  --hero-startup-bg-highlight:
-    radial-gradient(62% 68% at 82% 16%, rgba(91, 194, 255, 0.36) 0%, rgba(91, 194, 255, 0) 58%),
-    radial-gradient(70% 90% at 14% 18%, rgba(22, 96, 255, 0.45) 0%, rgba(22, 96, 255, 0) 64%),
-    linear-gradient(142deg, #020b4a 0%, #041a78 32%, #0a2f9f 62%, #13277a 100%);
+  --hero-startup-bg-highlight:#0a2f9f;
+    
+
+  --hero-startup-bg-electric:
+    radial-gradient(64% 72% at 84% 14%, rgba(153, 235, 255, 0.58) 0%, rgba(153, 235, 255, 0) 60%),
+    radial-gradient(74% 90% at 12% 16%, rgba(72, 173, 255, 0.52) 0%, rgba(72, 173, 255, 0) 66%),
+    linear-gradient(165deg, rgba(235, 249, 255, 0.34) 0 1px, rgba(235, 249, 255, 0) 1px 15px),
+    linear-gradient(165deg, rgba(120, 212, 255, 0.3) 0 2px, rgba(120, 212, 255, 0) 2px 24px),
+    radial-gradient(66% 72% at 10% 100%, rgba(8, 56, 176, 0.9) 0%, rgba(8, 56, 176, 0) 72%),
+    radial-gradient(58% 66% at 100% 86%, rgba(18, 132, 255, 0.44) 0%, rgba(18, 132, 255, 0) 64%),
+    linear-gradient(142deg, #0a2ea3 0%, #0d45c7 34%, #0b68ff 66%, #159dff 100%);
+
+  --hero-startup-bg-light:
+    radial-gradient(66% 72% at 82% 14%, rgba(220, 247, 255, 0.7) 0%, rgba(220, 247, 255, 0) 60%),
+    radial-gradient(72% 88% at 14% 18%, rgba(158, 225, 255, 0.56) 0%, rgba(158, 225, 255, 0) 66%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.48) 0 1px, rgba(255, 255, 255, 0) 1px 14px),
+    linear-gradient(165deg, rgba(193, 235, 255, 0.34) 0 2px, rgba(193, 235, 255, 0) 2px 24px),
+    radial-gradient(68% 74% at 8% 100%, rgba(28, 103, 222, 0.72) 0%, rgba(28, 103, 222, 0) 74%),
+    radial-gradient(56% 64% at 100% 84%, rgba(92, 191, 255, 0.44) 0%, rgba(92, 191, 255, 0) 66%),
+    linear-gradient(142deg, #2b68da 0%, #3d86e8 34%, #5caef7 66%, #8ad0ff 100%);
 }
 
 .hero-impact-font {
@@ -64,6 +80,14 @@
 
 .hero-startup-bg {
   background: var(--hero-startup-bg);
+}
+
+.hero-startup-bg-electric {
+  background: var(--hero-startup-bg-electric);
+}
+
+.hero-startup-bg-light {
+  background: var(--hero-startup-bg-light);
 }
 
 .startup-fixed-bg {
@@ -152,6 +176,11 @@ html, body {
   cursor: pointer;
 }
 
+.dealer-card--tap-hint {
+  animation: dealer-card-tap-pulse 1.9s ease-in-out infinite;
+  transform-origin: center center;
+}
+
 .dealer-card__inner {
   position: relative;
   transform-style: preserve-3d;
@@ -187,6 +216,26 @@ html, body {
 
 .dealer-card.is-flipped .dealer-card__inner {
   transform: rotateX(180deg);
+}
+
+@keyframes dealer-card-tap-pulse {
+  0%,
+  22%,
+  40%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  10% {
+    transform: scale(1.024);
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.16);
+  }
+
+  30% {
+    transform: scale(1.016);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+  }
 }
 
 @keyframes carousel-scroll {
@@ -520,6 +569,10 @@ nav[data-loupe-direction='left'] .sidebar-loupe-slider {
 @media (prefers-reduced-motion: reduce) {
   .dealer-card {
     transform: none;
+  }
+
+  .dealer-card--tap-hint {
+    animation: none !important;
   }
 
   .dealer-card__inner {
