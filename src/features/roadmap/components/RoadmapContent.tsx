@@ -86,6 +86,7 @@ export default function RoadmapContent({
   const [isToolsPromoDismissed, setIsToolsPromoDismissed] = useState(false);
   const [isValuePromoDismissed, setIsValuePromoDismissed] = useState(false);
   const [isProPromoDismissed, setIsProPromoDismissed] = useState(false);
+  const [flippedLayerId, setFlippedLayerId] = useState<number | null>(null);
   const [bubbleShift, setBubbleShift] = useState(0);
   const [bubbleArrowOffset, setBubbleArrowOffset] = useState(0);
   const hasAutoScrolledToUnlockedLayerRef = useRef(false);
@@ -129,7 +130,7 @@ export default function RoadmapContent({
 
   const handleTogglePurchaseBubble = useCallback((layerId: number) => {
     setActiveBubble((currentBubble) => {
-      if (currentBubble && currentBubble.type === 'purchase' && currentBubble.layerId === layerId) {
+      if (currentBubble?.type === 'purchase' && currentBubble.layerId === layerId) {
         return null;
       }
 
@@ -236,29 +237,33 @@ export default function RoadmapContent({
       className={isFullscreen ? 'min-h-screen w-full' : 'min-h-full w-full'}
       instant
     >
-      <div ref={contentBoundsRef} className="w-full bg-white text-slate-900" onClick={handleCloseBubble}>
+      <div
+        ref={contentBoundsRef}
+        className="w-full bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] text-slate-900"
+        onClick={handleCloseBubble}
+      >
         {isLoading && (
-          <div className="flex min-h-screen w-full flex-col items-center justify-center bg-white text-center text-slate-900">
+          <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] text-center text-slate-900">
             <LoaderCircle className="h-10 w-10 animate-spin text-slate-500" />
             <p className="mt-4 text-lg font-semibold">Cargando mapa por capas...</p>
           </div>
         )}
 
         {!isLoading && error && (
-          <div className="flex min-h-[420px] w-full flex-col items-center justify-center bg-white px-6 text-center">
+          <div className="flex min-h-[420px] w-full flex-col items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] px-6 text-center">
             <CircleAlert className="h-10 w-10 text-red-500" />
             <p className="mt-4 text-lg font-semibold text-slate-800">{error}</p>
           </div>
         )}
 
         {!isLoading && !error && layers.length === 0 && (
-          <div className="flex min-h-[420px] w-full items-center justify-center bg-white px-6 text-center">
+          <div className="flex min-h-[420px] w-full items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] px-6 text-center">
             <p className="text-lg font-semibold text-slate-800">No hay capas publicadas todavia.</p>
           </div>
         )}
 
         {!isLoading && !error && layers.length > 0 && (
-          <div className="w-full bg-white">
+          <div className="w-full bg-transparent">
             {layers.map((section, sectionIndex) => {
               const totalNodes = section.lessons.length + 1;
               const layerHeight = getLayerHeight(totalNodes);
@@ -327,23 +332,28 @@ export default function RoadmapContent({
               );
               const isLayerLockedByEntitlement = !hasLayerEntitlement;
               const headerBackground = isLayerLockedByEntitlement
-                ? theme.nodeLocked.face
-                : theme.titleBackground;
+                ? 'linear-gradient(180deg,rgba(248,250,252,0.98) 0%,rgba(237,242,248,0.96) 100%)'
+                : 'linear-gradient(180deg,rgba(255,255,255,0.98) 0%,rgba(243,247,255,0.96) 100%)';
               const headerSideBackground = isLayerLockedByEntitlement
-                ? theme.nodeLocked.side
-                : theme.titleSideBackground;
+                ? 'linear-gradient(180deg,rgba(221,227,236,0.95) 0%,rgba(208,214,224,0.95) 100%)'
+                : `linear-gradient(180deg,${theme.nodeUnlocked.face} 0%,${theme.nodeUnlocked.side} 100%)`;
               const headerBorderColor = isLayerLockedByEntitlement
-                ? theme.nodeLocked.faceBorder
-                : theme.titleBorder;
+                ? '#d7dee8'
+                : '#d4dfef';
               const headerDividerColor = isLayerLockedByEntitlement
-                ? theme.nodeLocked.sideBorder
-                : theme.titleDivider;
+                ? '#c8d1dd'
+                : theme.nodeUnlocked.faceBorder;
               const headerPrimaryTextClassName = isLayerLockedByEntitlement
-                ? 'text-slate-100/92'
-                : 'text-white';
-              const headerSecondaryTextClassName = isLayerLockedByEntitlement
-                ? 'text-slate-100/72'
-                : 'text-white/78';
+                ? 'text-[#1f2937]'
+                : 'text-[#0f172a]';
+              const headerDescriptionTextClassName = isLayerLockedByEntitlement
+                ? 'text-[#334155]'
+                : 'text-[#334155]';
+              const isHeaderFlipped = flippedLayerId === section.layer.id;
+              const layerDescription =
+                section.layer.description?.trim() ||
+                section.layer.teaser_text?.trim() ||
+                'Sin descripcion disponible.';
               const isPurchaseBubbleOpen =
                 activeBubble?.type === 'purchase' && activeBubble.layerId === section.layer.id;
               const isSkipDisabledByEntitlement = hasLayerEntitlement;
@@ -354,6 +364,11 @@ export default function RoadmapContent({
               const shouldShowProPromo = shouldShowProPromoBase && !isProPromoDismissed;
               const isSkipVisuallyDimmed =
                 isSkipDisabledByEntitlement || isPurchaseBubbleOpen;
+              const baseSectionZIndex = layers.length - sectionIndex;
+              const sectionZIndex =
+                activeBubble?.layerId === section.layer.id
+                  ? layers.length + 20
+                  : baseSectionZIndex;
               const purchasePalette = isSkipVisuallyDimmed
                 ? {
                     side: theme.nodeLocked.side,
@@ -370,61 +385,86 @@ export default function RoadmapContent({
               return (
                 <section
                   key={section.layer.id}
-                  className="relative w-full overflow-visible bg-transparent"
+                  className="relative w-full overflow-visible bg-transparent px-2 pt-3 sm:px-4"
+                  style={{ zIndex: sectionZIndex }}
                   ref={(element) => {
                     layerSectionRefs.current[section.layer.id] = element;
                   }}
                 >
-                  <ScrollReveal
-                    className="relative z-20 px-2 pt-2 sm:px-4"
-                    delay={Math.min(260, sectionIndex * 60)}
-                  >
-                    <div className="mx-auto w-full" style={{ maxWidth: `${STICKY_TITLE_MAX_WIDTH}px` }}>
-                      <div
-                        className="grid grid-cols-[1fr_auto] overflow-hidden rounded-[1.6rem] border shadow-[0_16px_28px_rgba(2,8,35,0.42)]"
-                        style={{
-                          background: headerBackground,
-                          borderColor: headerBorderColor,
-                        }}
-                      >
-                        <div className="px-4 py-3 sm:px-6 sm:py-4 lg:px-7 lg:py-5">
-                          <p className={`text-[11px] font-black uppercase tracking-[0.14em] sm:text-xs ${headerSecondaryTextClassName}`}>
-                            Seccion {sectionIndex + 1}
-                          </p>
-                          <HeaderTitle
-                            as="h2"
-                            uppercase={true}
-                            lineHeightClass="leading-tight"
-                            className={`mt-1 text-xl font-black sm:text-2xl lg:text-[2rem] ${headerPrimaryTextClassName}`}
-                          >
-                            {section.layer.title}
-                          </HeaderTitle>
-                        </div>
-                        <div
-                          className="flex w-[74px] items-center justify-center border-l sm:w-[86px] lg:w-[96px]"
-                          style={{
-                            background: headerSideBackground,
-                            borderColor: headerDividerColor,
+                  <div className="mx-auto w-full max-w-[1240px] overflow-visible rounded-[1.8rem] border border-[#d7dce5] bg-white/85 p-2 shadow-[0_14px_32px_rgba(15,23,42,0.10)] backdrop-blur-md sm:p-3 lg:p-4">
+                    <ScrollReveal
+                      className="relative z-20"
+                      delay={Math.min(260, sectionIndex * 60)}
+                    >
+                      <div className="mx-auto w-full [perspective:1400px]" style={{ maxWidth: `${STICKY_TITLE_MAX_WIDTH}px` }}>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setFlippedLayerId((current) => (current === section.layer.id ? null : section.layer.id));
                           }}
+                          className="block w-full text-left"
+                          aria-label={`Ver descripcion de ${section.layer.title}`}
                         >
-                          {isLayerLockedByEntitlement ? (
-                            <Lock className="h-8 w-8 text-slate-100/90 sm:h-9 sm:w-9" />
-                          ) : (
-                            <List className="h-8 w-8 text-white/92 sm:h-9 sm:w-9" />
-                          )}
-                        </div>
+                          <span
+                            className={`relative block h-[102px] w-full transition-transform duration-500 [transform-style:preserve-3d] sm:h-[112px] lg:h-[120px] ${
+                              isHeaderFlipped ? '[transform:rotateX(180deg)]' : ''
+                            }`}
+                          >
+                            <span
+                              className="absolute inset-0 grid grid-cols-[1fr_auto] overflow-hidden rounded-[1.35rem] border shadow-[0_16px_36px_rgba(15,23,42,0.20)] [backface-visibility:hidden]"
+                              style={{
+                                background: headerBackground,
+                                borderColor: headerBorderColor,
+                              }}
+                            >
+                              <span className="flex items-center justify-center px-4 py-3 text-center sm:px-6 sm:py-4 lg:px-7 lg:py-5">
+                                <HeaderTitle
+                                  as="h2"
+                                  lineHeightClass="leading-[1.05]"
+                                  className={`text-[1.18rem] tracking-[0.02em] sm:text-[1.5rem] lg:text-[1.75rem] ${headerPrimaryTextClassName}`}
+                                >
+                                  {sectionIndex + 1}. {section.layer.title}
+                                </HeaderTitle>
+                              </span>
+                              <span
+                                className="flex w-[68px] items-center justify-center border-l sm:w-[80px] lg:w-[90px]"
+                                style={{
+                                  background: headerSideBackground,
+                                  borderColor: headerDividerColor,
+                                }}
+                              >
+                                {isLayerLockedByEntitlement ? (
+                                  <Lock className="h-8 w-8 text-[#475569] sm:h-9 sm:w-9" />
+                                ) : (
+                                  <List className="h-8 w-8 text-white/92 sm:h-9 sm:w-9" />
+                                )}
+                              </span>
+                            </span>
+                            <span
+                              className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-[1.35rem] border px-4 py-3 text-center shadow-[0_16px_36px_rgba(15,23,42,0.20)] [transform:rotateX(180deg)] [backface-visibility:hidden] sm:px-6 sm:py-4 lg:px-7 lg:py-5"
+                              style={{
+                                background: headerBackground,
+                                borderColor: headerBorderColor,
+                              }}
+                            >
+                              <p className={`line-clamp-3 max-w-[92%] text-[0.92rem] font-medium leading-relaxed sm:text-[0.98rem] ${headerDescriptionTextClassName}`}>
+                                {layerDescription}
+                              </p>
+                            </span>
+                          </span>
+                        </button>
                       </div>
-                    </div>
-                  </ScrollReveal>
+                    </ScrollReveal>
 
-                  <ScrollReveal
-                    observeOnly
-                    onReveal={() => {
-                      handleRevealLayer(section.layer.id);
-                    }}
-                    className="relative mx-auto w-full max-w-[1220px] px-4 pb-14 pt-6 sm:px-8 sm:pb-16 sm:pt-8 lg:px-12 lg:pt-10"
-                  >
-                    <div className="relative w-full" style={{ height: `${layerHeight}px` }}>
+                    <ScrollReveal
+                      observeOnly
+                      onReveal={() => {
+                        handleRevealLayer(section.layer.id);
+                      }}
+                      className="relative mx-auto w-full max-w-[1220px] px-3 pb-10 pt-5 sm:px-6 sm:pb-12 sm:pt-7 lg:px-10 lg:pt-9"
+                    >
+                      <div className="relative w-full" style={{ height: `${layerHeight}px` }}>
                       {shouldShowExcelPromo && (
                         <div
                           className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 transition-opacity duration-500 ${
@@ -505,7 +545,7 @@ export default function RoadmapContent({
                               lineHeightClass="leading-[1.05]"
                               className="text-base tracking-[0.06em] sm:text-lg"
                             >
-                              Apuesta y gana <span className="title-span-highlight">dinero</span>
+                              Apuesta  <span className="title-span-highlight">conmigo</span> en directo
                             </HeaderTitle>
                           </RoadmapHintBubble>
                         </div>
@@ -533,7 +573,7 @@ export default function RoadmapContent({
                               lineHeightClass="leading-[1.08]"
                               className="text-sm tracking-[0.04em] sm:text-base"
                             >
-                              <span className="title-span-highlight">Valor</span> esperado, gana mas
+                              Grupo de<span className="title-span-highlight">apuestas</span> de valor
                             </HeaderTitle>
                           </RoadmapHintBubble>
                         </div>
@@ -603,26 +643,14 @@ export default function RoadmapContent({
                           }
                         >
                           <span
-                            className="pointer-events-none absolute inset-0 translate-y-[8px] rounded-full border-4"
-                            style={{
-                              backgroundColor: purchasePalette.side,
-                              borderColor: purchasePalette.sideBorder,
-                            }}
-                            aria-hidden="true"
-                          />
-                          <span
-                            className="relative z-10 flex h-full w-full items-center justify-center rounded-full border-4"
+                            className="relative z-10 flex h-full w-full items-center justify-center rounded-full border-[3px]"
                             style={{
                               borderColor: purchasePalette.faceBorder,
                               background: purchasePalette.face,
                               color: purchasePalette.text,
-                              boxShadow: purchasePalette.glow,
+                              boxShadow: `0 10px 20px rgba(15,23,42,0.22), ${purchasePalette.glow}`,
                             }}
                           >
-                            <span
-                              className="pointer-events-none absolute left-[20%] top-[14%] h-[18%] w-[38%] rounded-full bg-white/38 blur-[0.5px]"
-                              aria-hidden="true"
-                            />
                             <SkipForward className="relative h-7 w-7 drop-shadow-[0_2px_2px_rgba(2,8,35,0.35)]" />
                           </span>
                         </button>
@@ -630,7 +658,7 @@ export default function RoadmapContent({
                         {!isSkipDisabledByEntitlement && isPurchaseBubbleOpen && (
                           <div
                             ref={activeBubbleRef}
-                            className="absolute left-1/2 top-[calc(100%+12px)] z-50 w-[300px] max-w-[calc(100vw-16px)] rounded-3xl border bg-white p-5 text-left shadow-[0_16px_30px_rgba(15,23,42,0.16)] sm:w-[390px] sm:p-6 lg:w-[520px] lg:p-7 xl:w-[620px]"
+                            className="absolute left-1/2 top-[calc(100%+12px)] z-50 w-[280px] max-w-[calc(100vw-16px)] rounded-[1.4rem] border bg-white p-4 text-left shadow-[0_12px_26px_rgba(15,23,42,0.14)] sm:w-[320px] sm:p-5"
                             style={{
                               borderColor: theme.bubbleBorder,
                               transform: `translateX(calc(-50% + ${bubbleShift}px))`,
@@ -646,12 +674,25 @@ export default function RoadmapContent({
                                 left: `calc(50% + ${bubbleArrowOffset}px)`,
                               }}
                             />
-                            <button
-                              type="button"
-                              className="w-full rounded-2xl border border-[#ffd489]/70 bg-[linear-gradient(180deg,#ffd564_0%,#f6b326_100%)] px-5 py-3 text-base font-black text-[#3e2500] shadow-[0_8px_18px_rgba(255,180,43,0.35)] sm:px-6 sm:py-3.5 sm:text-lg lg:px-7 lg:py-4 lg:text-xl"
-                            >
-                              Comprar {formatPriceEur(section.layer.price_eur)}
-                            </button>
+                            <div className="relative flex min-h-[18.5rem] w-full flex-col rounded-[1.1rem] border-2 border-[#d5dbe6] bg-white p-4 sm:min-h-[19.5rem] sm:p-5">
+                              <span className="absolute left-3 top-3 rounded-lg bg-gray-900 px-2 py-1 text-xs font-black text-white">
+                                {section.layer.position}
+                              </span>
+                              <h3 className="mt-8 line-clamp-4 text-2xl font-bold text-gray-900">
+                                <span className="rebel-underline">El Metodo.</span>{' '}
+                                {section.layer.title}
+                              </h3>
+                              <p className="mt-5 whitespace-nowrap text-4xl font-bold leading-none text-gray-900">
+                                {formatPriceEur(section.layer.price_eur)}
+                              </p>
+                              <p className="mt-3 text-sm font-semibold text-gray-600">Disponible</p>
+                              <button
+                                type="button"
+                                className="mt-auto w-full rounded-xl bg-[#3b82f6] py-3 text-sm font-semibold text-white transition hover:bg-[#2563eb]"
+                              >
+                                Comprar capa
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -748,26 +789,14 @@ export default function RoadmapContent({
                               aria-label={`Abrir leccion ${lessonNode.lesson.title}`}
                             >
                               <span
-                                className="pointer-events-none absolute inset-0 translate-y-[8px] rounded-full border-4"
-                                style={{
-                                  backgroundColor: nodePalette.side,
-                                  borderColor: nodePalette.sideBorder,
-                                }}
-                                aria-hidden="true"
-                              />
-                              <span
-                                className="relative z-10 flex h-full w-full items-center justify-center rounded-full border-4"
+                                className="relative z-10 flex h-full w-full items-center justify-center rounded-full border-[3px]"
                                 style={{
                                   borderColor: nodePalette.faceBorder,
                                   background: nodePalette.face,
                                   color: nodePalette.text,
-                                  boxShadow: nodePalette.glow,
+                                  boxShadow: `0 10px 20px rgba(15,23,42,0.20), ${nodePalette.glow}`,
                                 }}
                               >
-                                <span
-                                  className="pointer-events-none absolute left-[20%] top-[14%] h-[18%] w-[38%] rounded-full bg-white/38 blur-[0.5px]"
-                                  aria-hidden="true"
-                                />
                                 <span className="relative text-xl font-black drop-shadow-[0_2px_2px_rgba(2,8,35,0.45)]">
                                   {globalLessonNumber}
                                 </span>
@@ -777,7 +806,7 @@ export default function RoadmapContent({
                             {isBubbleOpen && (
                               <div
                                 ref={activeBubbleRef}
-                                className="absolute left-1/2 top-[calc(100%+12px)] z-50 w-[320px] max-w-[calc(100vw-16px)] rounded-3xl border bg-white p-5 text-left shadow-[0_16px_30px_rgba(15,23,42,0.16)] sm:w-[420px] sm:p-6 lg:w-[580px] lg:p-7 xl:w-[700px]"
+                                className="absolute left-1/2 top-[calc(100%+12px)] z-50 w-[320px] max-w-[calc(100vw-16px)] rounded-[1.4rem] border bg-white p-5 text-left shadow-[0_12px_26px_rgba(15,23,42,0.14)] sm:w-[420px] sm:p-6 lg:w-[580px] lg:p-7 xl:w-[700px]"
                                 style={{ borderColor: theme.bubbleBorder, transform: `translateX(calc(-50% + ${bubbleShift}px))` }}
                                 onClick={(event) => {
                                   event.stopPropagation();
@@ -799,8 +828,8 @@ export default function RoadmapContent({
                         );
                       })}
                     </div>
-                  </ScrollReveal>
-
+                    </ScrollReveal>
+                  </div>
                 </section>
               );
             })}

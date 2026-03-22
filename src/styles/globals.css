@@ -13,7 +13,7 @@
     
     linear-gradient(142deg, #020b4a 0%, #041a78 32%, #0a2f9f 62%, #13277a 100%);
 
-  --hero-startup-bg-highlight:#0a2f9f;
+  --hero-startup-bg-highlight: linear-gradient(135deg, #0a3b91 0%, #1d5fd1 100%);
     
 
   --hero-startup-bg-electric:

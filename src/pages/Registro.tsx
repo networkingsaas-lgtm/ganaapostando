@@ -22,6 +22,30 @@ const INITIAL_FORM: RegisterFormState = {
   password: '',
 };
 
+const OAUTH_REDIRECT_PATH = '/dashboard/ajustes';
+
+const OAUTH_PROVIDER_CONFIG: Record<
+  SocialProvider,
+  { label: string; scopes: string; queryParams?: Record<string, string> }
+> = {
+  google: {
+    label: 'Google',
+    scopes: 'email profile',
+    queryParams: {
+      access_type: 'offline',
+      prompt: 'consent',
+    },
+  },
+  facebook: {
+    label: 'Facebook',
+    scopes: 'email public_profile',
+  },
+  apple: {
+    label: 'Apple',
+    scopes: 'name email',
+  },
+};
+
 const getFriendlyRegisterError = (error: unknown) => {
   if (error instanceof Error && error.message.trim()) {
     return error.message;
@@ -76,7 +100,7 @@ function FacebookIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
       <path
         d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6.02 4.39 11.01 10.12 11.93v-8.44H7.08v-3.49h3.04V9.41c0-3.02 1.79-4.69 4.54-4.69 1.31 0 2.68.24 2.68.24v2.96h-1.51c-1.49 0-1.95.93-1.95 1.88v2.27h3.33l-.53 3.49h-2.8V24C19.61 23.08 24 18.09 24 12.07Z"
-        fill="#1877F2"
+        fill="currentColor"
       />
     </svg>
   );
@@ -104,17 +128,20 @@ export default function Registro({ onVolver, onRegistroExitoso }: Props) {
 
   const hasPendingRequest = isSubmitting || socialSubmitting !== null;
 
-  const handleSocialLogin = async (provider: SocialProvider, providerLabel: string) => {
+  const handleSocialLogin = async (provider: SocialProvider) => {
     setErrorMessage(null);
     setSuccessMessage(null);
     setSocialSubmitting(provider);
 
     try {
       const supabase = getSupabaseClient();
+      const providerConfig = OAUTH_PROVIDER_CONFIG[provider];
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/mapa`,
+          redirectTo: `${window.location.origin}${OAUTH_REDIRECT_PATH}`,
+          scopes: providerConfig.scopes,
+          queryParams: providerConfig.queryParams,
         },
       });
 
@@ -125,7 +152,7 @@ export default function Registro({ onVolver, onRegistroExitoso }: Props) {
       const message =
         error instanceof Error && error.message.trim()
           ? error.message
-          : `No se pudo iniciar sesion con ${providerLabel}.`;
+          : `No se pudo continuar con ${OAUTH_PROVIDER_CONFIG[provider].label}.`;
       setErrorMessage(message);
     } finally {
       setSocialSubmitting(null);
@@ -231,32 +258,32 @@ export default function Registro({ onVolver, onRegistroExitoso }: Props) {
 
                       <button
                         type="button"
-                        onClick={() => void handleSocialLogin('google', 'Google')}
+                        onClick={() => void handleSocialLogin('google')}
                         disabled={hasPendingRequest}
                         className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         <GoogleIcon />
-                        {socialSubmitting === 'google' ? 'Conectando...' : 'Inicia sesion con Google'}
+                        {socialSubmitting === 'google' ? 'Conectando...' : 'Registrate con Google'}
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => void handleSocialLogin('facebook', 'Facebook')}
-                        disabled={hasPendingRequest}
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled
+                        aria-disabled="true"
+                        className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-2xl border border-slate-500/40 bg-slate-600/40 px-4 py-3.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-600/55"
                       >
                         <FacebookIcon />
-                        {socialSubmitting === 'facebook' ? 'Conectando...' : 'Inicia sesion con Facebook'}
+                        Registrate con Facebook
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => void handleSocialLogin('apple', 'Apple')}
-                        disabled={hasPendingRequest}
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled
+                        aria-disabled="true"
+                        className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-2xl border border-slate-500/40 bg-slate-600/40 px-4 py-3.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-600/55"
                       >
                         <AppleIcon />
-                        {socialSubmitting === 'apple' ? 'Conectando...' : 'Inicia sesion con Apple'}
+                        Registrate con Apple
                       </button>
                     </div>
                   </div>

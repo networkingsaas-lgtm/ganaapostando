@@ -13,7 +13,7 @@ import RouteSwiper from './shared/components/RouteSwiper';
 import { logoutFromSupabase } from './lib/auth';
 import { getSupabaseClient } from './lib/supabase';
 
-type AppRoute = '/' | '/resultados' | '/mapa' | '/registro';
+type AppRoute = '/' | '/resultados' | '/dashboard' | '/registro';
 
 interface RouteState {
   scrollToPricing?: boolean;
@@ -26,12 +26,21 @@ const getAppRoute = (pathname: string): AppRoute | null => {
     return pathname;
   }
 
-  if (pathname === '/mapa' || pathname.startsWith('/mapa/')) {
-    return '/mapa';
+  if (
+    pathname === '/dashboard'
+    || pathname.startsWith('/dashboard/')
+    || pathname === '/mapa'
+    || pathname.startsWith('/mapa/')
+  ) {
+    return '/dashboard';
   }
 
   return null;
 };
+
+const getDashboardAliasPath = (pathname: string) => (
+  pathname === '/mapa' ? '/dashboard/mapa' : pathname.replace(/^\/mapa/, '/dashboard')
+);
 
 function LandingPage({
   flashButtonsKey,
@@ -150,14 +159,6 @@ function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (resolvedRoute) {
-      return;
-    }
-
-    navigate('/', { replace: true });
-  }, [location.pathname, navigate, resolvedRoute]);
-
   return (
     <RouteSwiper<AppRoute>
       currentRoute={currentRoute}
@@ -188,7 +189,7 @@ function App() {
                 onLoginSuccess={() => {
                   void syncAuthFromSession().then((hasSession) => {
                     if (hasSession) {
-                      navigate('/mapa');
+                      navigate('/dashboard/mapa');
                     }
                   });
                 }}
@@ -210,11 +211,24 @@ function App() {
             }
           />
           <Route
-            path="/mapa/*"
+            path="/dashboard/*"
             element={(
               <ProtectedRoute authReady={authReady} isAuthenticated={isAuthenticated}>
                 <PortalLayout onVolver={() => { void handleLogout(); }} />
               </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/mapa/*"
+            element={(
+              <Navigate
+                to={{
+                  pathname: getDashboardAliasPath(location.pathname),
+                  search: location.search,
+                  hash: location.hash,
+                }}
+                replace
+              />
             )}
           />
           <Route
@@ -225,7 +239,7 @@ function App() {
                 onRegistroExitoso={() => {
                   void syncAuthFromSession().then((hasSession) => {
                     if (hasSession) {
-                      navigate('/mapa/ajustes');
+                      navigate('/dashboard/ajustes');
                     }
                   });
                 }}

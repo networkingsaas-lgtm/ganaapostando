@@ -1,37 +1,24 @@
 import type { User } from '@supabase/supabase-js';
-import { CircleAlert, LoaderCircle } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import PricingSection from '../features/home/sections/PricingSection';
-import { getRoadmapLayerTheme } from '../features/roadmap/constants';
+import { LoaderCircle, Undo2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FC } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getAuthenticatedUserLabel } from '../features/portal-shell/utils';
-import type { LayerSection } from '../features/roadmap/types';
 import { useRoadmapData } from '../features/roadmap/hooks/useRoadmapData';
+import { formatPriceEur } from '../features/roadmap/utils';
+import { pricingPlans } from '../features/pricing/plans';
 import { getSupabaseClient } from '../lib/supabase';
-import HeaderTitle from '../shared/components/HeaderTitle';
 
-type BatterySlot = 1 | 2 | 3 | 4 | 5;
-
-interface PurchasedSlotInfo {
-  fill: string;
-  border: string;
-  glow: string;
-  layerTitle: string;
+interface Props {
+  onOpenLogout?: () => void;
 }
 
-interface PurchasedCourseSummary {
-  courseId: number;
-  courseTitle: string;
-  purchasedSlotCount: number;
-  slotDetails: Partial<Record<BatterySlot, PurchasedSlotInfo>>;
+interface SettingsRouteState {
+  focusLayerId?: number;
+  scrollToBilling?: boolean;
 }
 
-interface ActiveBatteryBubble {
-  courseId: number;
-  slot: BatterySlot;
-  anchorX: number;
-  anchorY: number;
-}
+const BILLING_SCROLL_DURATION_MS = 1300;
+const BILLING_SELECTOR_TRANSITION_MS = 320;
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',
@@ -52,89 +39,89 @@ const formatDateTime = (value: string | null) => {
   return DATE_TIME_FORMATTER.format(parsedDate);
 };
 
-const MAX_BATTERY_SLOTS = 5;
+const easeInOutCubic = (value: number) => (
+  value < 0.5
+    ? 4 * value * value * value
+    : 1 - Math.pow(-2 * value + 2, 3) / 2
+);
 
-const toPurchasedCourses = (
-  layers: LayerSection[],
-  layerPaletteById: Map<number, { fill: string; border: string; glow: string }>,
-): PurchasedCourseSummary[] => {
-  const byCourseId = new Map<
-    number,
-    {
-      courseTitle: string;
-      purchasedSlots: Map<BatterySlot, PurchasedSlotInfo>;
-      layerCountSeen: number;
-    }
-  >();
+const slowScrollToBottom = (target: HTMLElement, durationMs = 1200) => {
+  const scrollContainer = target.closest('main');
 
-  for (const section of layers) {
-    const hasPurchasedLayer = section.lessons.some(
-      (lessonNode) => lessonNode.reason === 'entitled' || Boolean(lessonNode.access?.entitlement),
-    );
-
-    const existingCourse = byCourseId.get(section.courseId) ?? {
-      courseTitle: section.courseTitle,
-      purchasedSlots: new Map<BatterySlot, PurchasedSlotInfo>(),
-      layerCountSeen: 0,
-    };
-
-    const inferredLayerPosition =
-      typeof section.layer.position === 'number' && Number.isFinite(section.layer.position)
-        ? section.layer.position
-        : existingCourse.layerCountSeen + 1;
-
-    const slotNumber = Math.min(
-      MAX_BATTERY_SLOTS,
-      Math.max(1, Math.trunc(inferredLayerPosition)),
-    ) as BatterySlot;
-
-    existingCourse.layerCountSeen += 1;
-
-    if (hasPurchasedLayer) {
-      const palette = layerPaletteById.get(section.layer.id);
-      existingCourse.purchasedSlots.set(slotNumber, {
-        fill:
-          palette?.fill ??
-          'linear-gradient(180deg,hsl(142 76% 74%) 0%,hsl(142 70% 55%) 100%)',
-        border: palette?.border ?? 'hsl(142 68% 34%)',
-        glow: palette?.glow ?? '0 8px 16px hsla(142 76% 42% / 0.35)',
-        layerTitle: section.layer.title,
-      });
-    }
-
-    byCourseId.set(section.courseId, existingCourse);
+  if (!scrollContainer) {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    return;
   }
 
-  return Array.from(byCourseId.entries())
-    .map(([courseId, course]) => ({
-      courseId,
-      courseTitle: course.courseTitle,
-      purchasedSlotCount: course.purchasedSlots.size,
-      slotDetails: Object.fromEntries(course.purchasedSlots.entries()) as Partial<
-        Record<BatterySlot, PurchasedSlotInfo>
-      >,
-    }))
-    .filter((course) => course.purchasedSlotCount > 0)
-    .sort(
-      (left, right) =>
-        right.purchasedSlotCount - left.purchasedSlotCount ||
-        left.courseTitle.localeCompare(right.courseTitle, 'es'),
-    );
+  const startTop = scrollContainer.scrollTop;
+  const targetTop = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+  const distance = targetTop - startTop;
+
+  if (Math.abs(distance) < 2) {
+    return;
+  }
+
+  const startedAt = performance.now();
+
+  const step = (now: number) => {
+    const progress = Math.min((now - startedAt) / durationMs, 1);
+    const eased = easeInOutCubic(progress);
+    scrollContainer.scrollTop = startTop + distance * eased;
+
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    }
+  };
+
+  window.requestAnimationFrame(step);
 };
 
-export default function UserSettingsPage() {
+const getBillingDeckLayout = () => {
+  if (typeof window === 'undefined') {
+    return { step: 72, width: 512 };
+  }
+
+  const viewportWidth = window.innerWidth;
+
+  if (viewportWidth >= 1536) {
+    return { step: 128, width: 792 };
+  }
+
+  if (viewportWidth >= 1280) {
+    return { step: 112, width: 728 };
+  }
+
+  if (viewportWidth >= 1024) {
+    return { step: 96, width: 640 };
+  }
+
+  if (viewportWidth >= 768) {
+    return { step: 84, width: 560 };
+  }
+
+  return { step: 72, width: 512 };
+};
+
+const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
+  const location = useLocation();
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [userError, setUserError] = useState<string | null>(null);
-  const [activeBatteryBubble, setActiveBatteryBubble] = useState<ActiveBatteryBubble | null>(null);
-  const [bubbleShift, setBubbleShift] = useState(0);
-  const [bubbleArrowOffset, setBubbleArrowOffset] = useState(0);
-  const activeBubbleRef = useRef<HTMLDivElement | null>(null);
+  const [activeBillingCard, setActiveBillingCard] = useState<number | null>(null);
+  const [showLayerBillingCards, setShowLayerBillingCards] = useState(false);
+  const [isBillingSelectorClosing, setIsBillingSelectorClosing] = useState(false);
+  const [isBillingSelectorEntering, setIsBillingSelectorEntering] = useState(false);
+  const [isLayerCardsEntering, setIsLayerCardsEntering] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  );
+  const [billingDeckLayout, setBillingDeckLayout] = useState(getBillingDeckLayout);
   const {
     isLoading: isCoursesLoading,
-    error: coursesError,
     layers,
   } = useRoadmapData();
+  const handledSettingsLocationKeyRef = useRef<string | null>(null);
+  const billingSelectorTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -177,76 +164,29 @@ export default function UserSettingsPage() {
     };
   }, []);
 
-  const recomputeBubblePosition = useCallback(() => {
-    const bubbleElement = activeBubbleRef.current;
-
-    if (!bubbleElement) {
-      setBubbleShift(0);
-      setBubbleArrowOffset(0);
-      return;
-    }
-
-    const rect = bubbleElement.getBoundingClientRect();
-    const viewportPadding = 8;
-    const leftBoundary = viewportPadding;
-    const rightBoundary = window.innerWidth - viewportPadding;
-    const leftOverflow = Math.max(0, leftBoundary - rect.left);
-    const rightOverflow = Math.max(0, rect.right - rightBoundary);
-    const shift = leftOverflow - rightOverflow;
-    const maxArrowOffset = Math.max(0, rect.width / 2 - 18);
-    const arrowOffset = Math.max(-maxArrowOffset, Math.min(maxArrowOffset, -shift));
-
-    setBubbleShift(shift);
-    setBubbleArrowOffset(arrowOffset);
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!activeBatteryBubble) {
-      setBubbleShift(0);
-      setBubbleArrowOffset(0);
-      return;
-    }
-
-    recomputeBubblePosition();
-  }, [activeBatteryBubble, recomputeBubblePosition]);
-
   useEffect(() => {
-    if (!activeBatteryBubble) {
-      return;
-    }
-
-    const handleResize = () => {
-      recomputeBubblePosition();
+    const syncBillingDeckLayout = () => {
+      setBillingDeckLayout(getBillingDeckLayout());
+      setIsMobileViewport(window.innerWidth < 768);
     };
 
-    window.addEventListener('resize', handleResize);
+    syncBillingDeckLayout();
+    window.addEventListener('resize', syncBillingDeckLayout);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', syncBillingDeckLayout);
     };
-  }, [activeBatteryBubble, recomputeBubblePosition]);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (billingSelectorTimeoutRef.current !== null) {
+        window.clearTimeout(billingSelectorTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const userLabel = useMemo(() => getAuthenticatedUserLabel(authUser), [authUser]);
-
-  const layerPaletteById = useMemo(() => {
-    const nextMap = new Map<number, { fill: string; border: string; glow: string }>();
-
-    layers.forEach((section, sectionIndex) => {
-      const theme = getRoadmapLayerTheme(sectionIndex, layers.length);
-      nextMap.set(section.layer.id, {
-        fill: theme.nodeUnlocked.face,
-        border: theme.nodeUnlocked.sideBorder,
-        glow: theme.nodeUnlocked.glow,
-      });
-    });
-
-    return nextMap;
-  }, [layers]);
-
-  const purchasedCourses = useMemo(
-    () => toPurchasedCourses(layers, layerPaletteById),
-    [layers, layerPaletteById],
-  );
   const purchasedLayersCount = useMemo(
     () =>
       layers.filter((section) =>
@@ -256,222 +196,395 @@ export default function UserSettingsPage() {
       ).length,
     [layers],
   );
-  const totalLayersCount = useMemo(
-    () => layers.length,
+  const isPremium = purchasedLayersCount > 0;
+  const layerPricingPlan = pricingPlans[0];
+  const methodPricingPlan = pricingPlans[1];
+  const billingLayerCards = useMemo(
+    () =>
+      [...layers]
+        .sort((left, right) => left.layer.position - right.layer.position)
+        .slice(0, 5),
     [layers],
   );
-  const activeBubbleCourse = useMemo(
-    () =>
-      activeBatteryBubble
-        ? purchasedCourses.find((course) => course.courseId === activeBatteryBubble.courseId) ?? null
-        : null,
-    [activeBatteryBubble, purchasedCourses],
-  );
-  const activeSlotInfo =
-    activeBatteryBubble && activeBubbleCourse
-      ? activeBubbleCourse.slotDetails[activeBatteryBubble.slot]
-      : undefined;
+
+  const handleGoToBilling = useCallback(() => {
+    const billingSection = document.getElementById('billing-capas');
+
+    if (!billingSection) {
+      return;
+    }
+
+    billingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const handleOpenLayerBillingCards = useCallback(() => {
+    if (showLayerBillingCards) {
+      return;
+    }
+
+    if (billingSelectorTimeoutRef.current !== null) {
+      window.clearTimeout(billingSelectorTimeoutRef.current);
+      billingSelectorTimeoutRef.current = null;
+    }
+
+    setIsBillingSelectorClosing(true);
+    billingSelectorTimeoutRef.current = window.setTimeout(() => {
+      setShowLayerBillingCards(true);
+      setIsLayerCardsEntering(false);
+      window.requestAnimationFrame(() => {
+        setIsLayerCardsEntering(true);
+      });
+      setIsBillingSelectorClosing(false);
+      setIsBillingSelectorEntering(false);
+      billingSelectorTimeoutRef.current = null;
+    }, BILLING_SELECTOR_TRANSITION_MS);
+  }, [showLayerBillingCards]);
+
+  const handleBackToBillingSelector = useCallback(() => {
+    if (!showLayerBillingCards) {
+      return;
+    }
+
+    if (billingSelectorTimeoutRef.current !== null) {
+      window.clearTimeout(billingSelectorTimeoutRef.current);
+      billingSelectorTimeoutRef.current = null;
+    }
+
+    setActiveBillingCard(null);
+    setIsLayerCardsEntering(false);
+    billingSelectorTimeoutRef.current = window.setTimeout(() => {
+      setShowLayerBillingCards(false);
+      setIsBillingSelectorClosing(false);
+      setIsBillingSelectorEntering(true);
+      window.requestAnimationFrame(() => {
+        setIsBillingSelectorEntering(false);
+      });
+      billingSelectorTimeoutRef.current = null;
+    }, BILLING_SELECTOR_TRANSITION_MS);
+  }, [showLayerBillingCards]);
+
+  useEffect(() => {
+    if (handledSettingsLocationKeyRef.current === location.key) {
+      return;
+    }
+
+    const state = location.state as SettingsRouteState | null;
+    const shouldScroll = Boolean(state?.scrollToBilling);
+    const hasFocusLayer = typeof state?.focusLayerId === 'number';
+
+    if (!shouldScroll && !hasFocusLayer) {
+      handledSettingsLocationKeyRef.current = location.key;
+      return;
+    }
+
+    if (isCoursesLoading) {
+      return;
+    }
+
+    if (!showLayerBillingCards) {
+      setShowLayerBillingCards(true);
+      setIsLayerCardsEntering(true);
+      setIsBillingSelectorClosing(false);
+      setIsBillingSelectorEntering(false);
+    }
+
+    handledSettingsLocationKeyRef.current = location.key;
+
+    if (shouldScroll) {
+      window.setTimeout(() => {
+        const billingSection = document.getElementById('billing-capas');
+        if (billingSection) {
+          slowScrollToBottom(billingSection, BILLING_SCROLL_DURATION_MS);
+        }
+      }, 40);
+    }
+
+    if (hasFocusLayer) {
+      const nextActiveIndex = billingLayerCards.findIndex((layer) => layer.layer.id === state?.focusLayerId);
+      if (nextActiveIndex >= 0) {
+        if (shouldScroll) {
+          window.setTimeout(() => {
+            setActiveBillingCard(nextActiveIndex);
+          }, BILLING_SCROLL_DURATION_MS + 80);
+        } else {
+          setActiveBillingCard(nextActiveIndex);
+        }
+      }
+    }
+  }, [billingLayerCards, isCoursesLoading, location.key, location.state, showLayerBillingCards]);
 
   return (
-    <div className="m-0 space-y-6 bg-transparent p-0 text-slate-900" onClick={() => setActiveBatteryBubble(null)}>
+    <div className="m-0 space-y-6 bg-transparent p-0 text-slate-900">
       <section className="relative z-30 overflow-visible rounded-[1.75rem] border border-[#d9d9de] bg-white/90 p-5 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
-        <HeaderTitle
-          as="h1"
-          uppercase={false}
-          lineHeightClass="leading-[1.1]"
-          className="text-2xl font-black tracking-[-0.015em] text-[#111827] sm:text-4xl"
-        >
-          Ajustes de <span className="title-span-highlight">Usuarios</span>
-        </HeaderTitle>
-        <p className="mt-2 text-sm text-[#6b7280] sm:text-base">
-          Consulta tus datos de inicio de sesion y el estado de tu cuenta autenticada.
-        </p>
-
         {isUserLoading && (
-          <div className="mt-6 flex items-center gap-3 rounded-2xl bg-[#f5f6fa] px-4 py-3 text-[#4b5563]">
+          <div className="flex items-center gap-3 rounded-2xl bg-[#f5f6fa] px-4 py-3 text-[#4b5563]">
             <LoaderCircle className="h-5 w-5 animate-spin" />
             <span>Cargando datos del usuario...</span>
           </div>
         )}
 
         {!isUserLoading && userError && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {userError}
           </div>
         )}
 
         {!isUserLoading && !userError && (
-          <div className="mt-6 overflow-hidden rounded-[1.35rem] border border-[#e5e7eb] bg-white shadow-[0_8px_18px_rgba(17,24,39,0.04)]">
-            <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
-              <p className="text-sm font-medium text-[#374151]">Usuario</p>
-              <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">{userLabel}</p>
+          <>
+            <div className="rounded-[1.35rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_8px_18px_rgba(17,24,39,0.04)] sm:p-6">
+              <div className="flex items-center gap-4">
+                <div
+                  className={`h-16 w-16 overflow-hidden rounded-full border-4 ${
+                    isPremium ? 'border-[#2563eb] shadow-[0_8px_18px_rgba(37,99,235,0.34)]' : 'border-[#d1d5db]'
+                  }`}
+                >
+                  <img
+                    src="/sin_foto.png"
+                    alt={`Avatar de ${userLabel}`}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                  <div className="min-w-0">
+                  <p className="truncate text-[1.35rem] font-semibold tracking-[-0.02em] text-[#111827] sm:text-[1.85rem]">
+                    {userLabel}
+                  </p>
+                  {isCoursesLoading ? (
+                    <p className="mt-1 text-sm font-medium text-[#6b7280]">Comprobando plan...</p>
+                  ) : isPremium ? (
+                    <p className="mt-1 text-sm font-semibold text-[#2563eb]">Plan premium</p>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleGoToBilling}
+                    className="mt-3 rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600"
+                  >
+                    Mejorar plan
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
-              <p className="text-sm font-medium text-[#374151]">Email</p>
-              <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
-                {authUser?.email ?? 'No disponible'}
-              </p>
+
+            <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-[#e5e7eb] bg-white shadow-[0_8px_18px_rgba(17,24,39,0.04)]">
+              <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
+                <p className="text-sm font-medium text-[#374151]">Usuario</p>
+                <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">{userLabel}</p>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
+                <p className="text-sm font-medium text-[#374151]">Email</p>
+                <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
+                  {authUser?.email ?? 'No disponible'}
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
+                <p className="text-sm font-medium text-[#374151]">Ultimo acceso</p>
+                <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
+                  {formatDateTime(authUser?.last_sign_in_at ?? null)}
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-4 px-4 py-3">
+                <p className="text-sm font-medium text-[#374151]">Cuenta creada</p>
+                <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
+                  {formatDateTime(authUser?.created_at ?? null)}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
-              <p className="text-sm font-medium text-[#374151]">Ultimo acceso</p>
-              <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
-                {formatDateTime(authUser?.last_sign_in_at ?? null)}
-              </p>
-            </div>
-            <div className="flex items-center justify-between gap-4 px-4 py-3">
-              <p className="text-sm font-medium text-[#374151]">Cuenta creada</p>
-              <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
-                {formatDateTime(authUser?.created_at ?? null)}
-              </p>
-            </div>
-          </div>
+          </>
         )}
       </section>
 
-      <section className="rounded-[1.75rem] border border-[#d9d9de] bg-white/90 p-5 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
-        <HeaderTitle
-          as="h2"
-          uppercase={false}
-          lineHeightClass="leading-[1.1]"
-          className="text-xl font-black tracking-[-0.015em] text-[#111827] sm:text-3xl"
-        >
-          Cursos <span className="title-span-highlight">Comprados</span>
-        </HeaderTitle>
+      <section id="billing-capas" className="relative z-50 overflow-visible rounded-[1.75rem] border border-[#d9d9de] bg-white/90 p-5 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
+        <h2 className="text-[1.35rem] font-semibold tracking-[-0.02em] text-[#111827] sm:text-[1.85rem]">
+          Billing de capas
+        </h2>
         <p className="mt-2 text-sm text-[#6b7280] sm:text-base">
-          Aqui puedes ver los cursos y capas que tu cuenta tiene desbloqueados.
+          Vista previa del billing por capas desbloqueables.
         </p>
-        {!isCoursesLoading && !coursesError && totalLayersCount > 0 && (
-          <p className="mt-2 text-right text-xs font-semibold text-[#6b7280] sm:text-sm">
-            {purchasedLayersCount}/{totalLayersCount}
-          </p>
-        )}
 
-        {isCoursesLoading && (
-          <div className="mt-6 flex items-center gap-3 rounded-2xl bg-[#f5f6fa] px-4 py-3 text-[#4b5563]">
-            <LoaderCircle className="h-5 w-5 animate-spin" />
-            <span>Cargando cursos comprados...</span>
+        {!showLayerBillingCards && (
+          <div
+            className={`mt-10 overflow-x-auto pb-2 transition-all duration-300 ${
+              isBillingSelectorClosing || isBillingSelectorEntering
+                ? 'pointer-events-none translate-y-2 scale-[0.98] opacity-0'
+                : 'translate-y-0 scale-100 opacity-100'
+            }`}
+          >
+            <div
+              className="relative mx-auto h-[40rem] sm:h-[44rem]"
+              style={{ width: `${billingDeckLayout.width}px` }}
+            >
+              <div className="grid h-full grid-cols-2 gap-5 items-stretch">
+                <div className="relative flex h-full flex-col rounded-2xl border-4 border-gray-200 bg-white p-6 shadow-[0_10px_22px_rgba(17,24,39,0.10)] sm:p-8">
+                  <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                    <span className="rebel-underline">El Metodo</span>.
+                  </h3>
+                  <div className="mt-5">
+                    <span className="text-4xl font-bold text-gray-900 sm:text-5xl">EUR {methodPricingPlan?.price ?? '197'}</span>
+                    <span className="ml-1 text-sm text-gray-600">/ pago unico</span>
+                  </div>
+                  <p className="mt-4 text-base text-gray-600">
+                    {methodPricingPlan?.description ?? 'Aprende la metodologia completa en un solo plan.'}
+                  </p>
+                  <ul className="mt-5 space-y-2 text-sm text-gray-700">
+                    <li>Acceso completo al programa principal.</li>
+                    <li>Sin desbloqueos por etapas.</li>
+                    <li>Ideal si quieres todo el contenido desde el inicio.</li>
+                  </ul>
+                  <button
+                    type="button"
+                    className="mt-auto w-full rounded-lg border-2 border-gray-300 bg-gray-100 py-3 text-sm font-semibold text-gray-600"
+                  >
+                    Plan no seleccionado
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOpenLayerBillingCards}
+                  className="relative flex h-full flex-col rounded-2xl border-4 border-blue-300 bg-[linear-gradient(180deg,#ffffff_0%,#f2f7ff_100%)] p-6 text-left shadow-[0_12px_24px_rgba(37,99,235,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(37,99,235,0.24)] sm:p-8"
+                >
+                  <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                    <span className="rebel-underline">El Metodo</span>, por capas
+                  </h3>
+                  <div className="mt-5">
+                    <span className="text-4xl font-bold text-gray-900 sm:text-5xl">EUR {layerPricingPlan?.price ?? '1'}</span>
+                    <span className="ml-1 text-sm text-gray-600">/ desde</span>
+                  </div>
+                  <p className="mt-4 text-base text-gray-600">
+                    {layerPricingPlan?.description ?? 'Desbloquea contenido por niveles y compra solo lo que necesites.'}
+                  </p>
+                  <ul className="mt-5 space-y-2 text-sm text-gray-700">
+                    <li>Empiezas con un coste bajo.</li>
+                    <li>Compras capa a capa segun tu avance.</li>
+                    <li>Control total del gasto por modulo.</li>
+                  </ul>
+                  <span className="mt-auto inline-flex w-full items-center justify-center rounded-lg bg-blue-500 py-3 text-sm font-semibold text-white">
+                    Elegir por capas
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
-        {!isCoursesLoading && coursesError && (
-          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <CircleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" />
-            <span>{coursesError}</span>
+        {showLayerBillingCards && (
+        <>
+          <div className="mt-6 mb-2 flex justify-center">
+            <button
+              type="button"
+              onClick={handleBackToBillingSelector}
+              aria-label="Volver atras"
+              className="inline-flex items-center gap-2 px-2 py-1 text-sm font-semibold text-[#334155] transition hover:text-[#0f172a]"
+            >
+              <Undo2 className="h-5 w-5" />
+              <span>Atras</span>
+            </button>
           </div>
-        )}
 
-        {!isCoursesLoading && !coursesError && purchasedCourses.length === 0 && (
-          <div className="mt-6 rounded-2xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-sm text-[#6b7280]">
-            No se detectaron cursos comprados para este usuario.
-          </div>
-        )}
+        <div className={`mt-2 overflow-x-auto pb-2 transition-opacity duration-500 ${isLayerCardsEntering ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
+          <div
+            className="relative mx-auto h-[36rem] sm:h-[39rem]"
+            style={{ width: `${billingDeckLayout.width}px` }}
+            onMouseDown={() => setActiveBillingCard(null)}
+          >
+          {[1, 2, 3, 4, 5].map((slotNumber, slotIndex) => {
+            const layerCard = billingLayerCards[slotIndex];
+            const isPurchased = Boolean(layerCard?.lessons.some(
+              (lessonNode) => lessonNode.reason === 'entitled' || Boolean(lessonNode.access?.entitlement),
+            ));
+            const isActive = activeBillingCard === slotIndex;
+            const useViewportCenter = isActive && isMobileViewport;
+            const collapsedOffset = slotIndex * billingDeckLayout.step;
 
-        {!isCoursesLoading && !coursesError && purchasedCourses.length > 0 && (
-          <div className="relative z-30 mt-5 space-y-3 overflow-visible">
-            {purchasedCourses.map((course) => (
+            return (
               <div
-                key={course.courseId}
-                className="relative z-40 overflow-visible"
-                onClick={(event) => {
+                key={slotNumber}
+                role="button"
+                tabIndex={0}
+                onMouseDown={(event) => {
                   event.stopPropagation();
                 }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (activeBillingCard !== null && !isActive) {
+                    return;
+                  }
+                  setActiveBillingCard((current) => (current === slotIndex ? null : slotIndex));
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (activeBillingCard !== null && !isActive) {
+                      return;
+                    }
+                    setActiveBillingCard((current) => (current === slotIndex ? null : slotIndex));
+                  }
+                }}
+                className={`absolute left-0 top-8 flex min-h-[30rem] w-56 flex-col rounded-2xl border-4 border-gray-200 bg-white p-5 transition-all duration-300 sm:min-h-[33rem] sm:w-64 sm:p-8 ${
+                  isActive
+                    ? useViewportCenter
+                      ? 'fixed -translate-x-1/2 -translate-y-1/2 scale-[1.02] shadow-[0_28px_52px_rgba(15,23,42,0.28)] ring-2 ring-blue-300/60'
+                      : '-translate-x-1/2 scale-[1.02] -translate-y-3 shadow-[0_28px_52px_rgba(15,23,42,0.28)] ring-2 ring-blue-300/60'
+                    : activeBillingCard !== null
+                      ? 'scale-[0.98] translate-y-0 blur-[1.8px] opacity-50 shadow-[0_8px_16px_rgba(15,23,42,0.10)]'
+                      : 'scale-[0.99] translate-y-0 shadow-[0_16px_28px_rgba(15,23,42,0.18)] hover:-translate-y-1'
+                }`}
+                style={{
+                  left: useViewportCenter ? '50%' : isActive ? '50%' : `${collapsedOffset}px`,
+                  top: useViewportCenter ? '50dvh' : undefined,
+                  zIndex: isActive ? 120 : slotIndex + 1,
+                }}
               >
-                <div className="relative rounded-[1.05rem] border-2 border-[#c8ced8] bg-[#f8fafc] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-3.5 sm:py-3.5">
-                  <div className="grid grid-cols-5 gap-2 sm:gap-2.5">
-                    {[1, 2, 3, 4, 5].map((slot) => {
-                      const typedSlot = slot as BatterySlot;
-                      const slotInfo = course.slotDetails[typedSlot];
-                      const isFilled = Boolean(slotInfo);
-                      const isActive =
-                        activeBatteryBubble?.courseId === course.courseId &&
-                        activeBatteryBubble?.slot === typedSlot;
-
-                      return (
-                        <button
-                          key={slot}
-                          type="button"
-                          disabled={!isFilled}
-                          onClick={(event) => {
-                            event.stopPropagation();
-
-                            if (!isFilled) {
-                              return;
-                            }
-
-                            const slotRect = event.currentTarget.getBoundingClientRect();
-
-                            setActiveBatteryBubble((current) => {
-                              if (
-                                current &&
-                                current.courseId === course.courseId &&
-                                current.slot === typedSlot
-                              ) {
-                                return null;
-                              }
-
-                              return {
-                                courseId: course.courseId,
-                                slot: typedSlot,
-                                anchorX: slotRect.left + slotRect.width / 2,
-                                anchorY: slotRect.bottom,
-                              };
-                            });
-                          }}
-                          className={`h-10 rounded-[0.55rem] border transition-all duration-300 sm:h-11 ${
-                            isFilled ? 'cursor-pointer' : 'cursor-default'
-                          } ${isActive ? 'ring-2 ring-offset-1 ring-[#1d4ed8]/35' : ''}`}
-                          style={{
-                            background: isFilled ? slotInfo?.fill : '#d1d5db',
-                            borderColor: isFilled ? slotInfo?.border : '#c6cbd3',
-                            boxShadow: isFilled ? slotInfo?.glow : 'none',
-                          }}
-                          aria-label={`Slot ${slot} ${isFilled ? 'comprado' : 'sin comprar'}`}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-                <span
-                  className="pointer-events-none absolute -right-1 top-1/2 h-7 w-1.5 -translate-y-1/2 rounded-r bg-[#c5cad3] sm:h-8"
-                  aria-hidden="true"
-                />
+                <span className="absolute left-3 top-3 rounded-lg bg-gray-900 px-2 py-1 text-xs font-black text-white">
+                  {slotNumber}
+                </span>
+                <h3 className="mt-8 line-clamp-5 text-xl font-bold text-gray-900 sm:text-2xl">
+                  <span className="rebel-underline">El Metodo.</span>{' '}
+                  {layerCard?.layer.title ?? `Capa ${slotNumber}`}
+                </h3>
+                <p className="mt-5 whitespace-nowrap text-3xl font-bold leading-none text-gray-900 sm:text-4xl">
+                  {layerCard ? formatPriceEur(layerCard.layer.price_eur) : '-'}
+                </p>
+                <p className={`mt-3 text-sm font-semibold ${isPurchased ? 'text-green-600' : 'text-gray-600'}`}>
+                  {isPurchased ? 'Comprada' : 'Disponible'}
+                </p>
+                <button
+                  type="button"
+                  className="mt-auto w-full rounded-lg bg-blue-500 py-3 text-sm font-semibold text-white transition hover:bg-blue-600"
+                >
+                  Comprar capa
+                </button>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="relative z-10 overflow-hidden rounded-[1.75rem] border border-[#d9d9de] bg-white/90 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur">
-        <PricingSection startMode="stripe" theme="light" />
-      </section>
-      {activeBatteryBubble &&
-        activeSlotInfo &&
-        createPortal(
-          <div
-            ref={activeBubbleRef}
-            className="fixed z-[2147483647] w-[300px] max-w-[calc(100vw-16px)] rounded-3xl border bg-white p-5 text-left shadow-[0_16px_30px_rgba(15,23,42,0.16)] sm:w-[360px]"
-            style={{
-              borderColor: '#9cc3ff',
-              left: `${activeBatteryBubble.anchorX}px`,
-              top: `${activeBatteryBubble.anchorY + 12}px`,
-              transform: `translateX(calc(-50% + ${bubbleShift}px))`,
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
-          >
-            <span
-              className="absolute -top-2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t bg-white"
-              style={{
-                borderColor: '#9cc3ff',
-                left: `calc(50% + ${bubbleArrowOffset}px)`,
+            );
+          })}
+          {activeBillingCard !== null && (
+            <button
+              type="button"
+              aria-label="Deseleccionar card activa"
+              className="absolute inset-0 z-40 bg-white/10 backdrop-blur-[2px]"
+              onClick={(event) => {
+                event.stopPropagation();
+                setActiveBillingCard(null);
               }}
             />
-            <p className="text-base font-black text-[#111827] sm:text-lg">{activeSlotInfo.layerTitle}</p>
-            <p className="mt-1 text-sm text-[#6b7280]">Capa {activeBatteryBubble.slot} comprada</p>
-          </div>,
-          document.body,
+          )}
+          </div>
+        </div>
+        </>
         )}
+      </section>
+
+      <section className="relative z-30 rounded-[1.75rem] border border-[#d9d9de] bg-white/90 p-5 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
+        <button
+          type="button"
+          onClick={onOpenLogout}
+          className="w-full rounded-2xl bg-red-600 px-5 py-4 text-base font-semibold text-white transition hover:bg-red-700"
+        >
+          Cerrar sesion
+        </button>
+      </section>
     </div>
   );
-}
+};
+
+export default UserSettingsPage;

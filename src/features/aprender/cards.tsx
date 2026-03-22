@@ -72,7 +72,7 @@ export function CartaDisenoCard({ card, index, shouldAutoFlip = false }: Props) 
         <div className="dealer-card__face dealer-card__face--back border border-slate-300">
           <div className="absolute inset-6 overflow-hidden rounded-[22px] border border-slate-300 sm:inset-7">
             <img
-              src="/fondo_carta_card.jpg"
+              src="/fondo_carta_azul.png"
               alt=""
               aria-hidden="true"
               className="h-full w-full object-cover"

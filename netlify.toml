@@ -2,3 +2,8 @@
   # These client-side Vite env keys are intentionally public in the bundle.
   # Keep secrets scanning enabled and only omit known safe public keys.
   SECRETS_SCAN_OMIT_KEYS = "VITE_BACKEND_URL,VITE_SUPABASE_KEY,VITE_SUPABASE_URL"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

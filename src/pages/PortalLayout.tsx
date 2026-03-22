@@ -5,6 +5,7 @@ import PortalSidebar from '../features/portal-shell/components/PortalSidebar';
 import { useAuthUserLabel } from '../features/portal-shell/hooks/useAuthUserLabel';
 import RoadmapPage from './RoadmapPage';
 import UserSettingsPage from './UserSettingsPage';
+import GrupoApuestasPage from './GrupoApuestasPage';
 import AppModal from '../shared/components/AppModal';
 
 interface Props {
@@ -22,6 +23,7 @@ export default function PortalLayout({ onVolver }: Props) {
   const [logoutConfirmClosing, setLogoutConfirmClosing] = useState(false);
   const [logoutSubmitting, setLogoutSubmitting] = useState(false);
   const logoutModalTimeoutRef = useRef<number | null>(null);
+  const mainScrollRef = useRef<HTMLElement | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const authUserLabel = useAuthUserLabel();
@@ -51,7 +53,12 @@ export default function PortalLayout({ onVolver }: Props) {
     };
   }, []);
 
-  const currentSubRoute = (location.pathname.replace(/^\/mapa\/?/, '') || 'mapa').split('/')[0];
+  useEffect(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [location.pathname]);
+
+  const currentSubRoute = (location.pathname.replace(/^\/dashboard\/?/, '') || 'mapa').split('/')[0];
   const isMapView = currentSubRoute === 'mapa';
   const isSettingsView = currentSubRoute === 'ajustes';
   const usesLightSurface = isMapView || isSettingsView;
@@ -113,7 +120,7 @@ export default function PortalLayout({ onVolver }: Props) {
             if (!isDesktopViewport) {
               setSidebarOpen(false);
             }
-            navigate(`/mapa/${subRoute}`);
+            navigate(`/dashboard/${subRoute}`);
           }}
           onOpenLogout={() => {
             if (!isDesktopViewport) {
@@ -124,6 +131,7 @@ export default function PortalLayout({ onVolver }: Props) {
         />
 
         <main
+          ref={mainScrollRef}
           className={
             isMapView
               ? 'h-screen min-w-0 overflow-y-auto p-0 pb-28 lg:pb-0 lg:pl-[360px] xl:pl-[400px]'
@@ -133,7 +141,8 @@ export default function PortalLayout({ onVolver }: Props) {
           <Routes>
             <Route index element={<Navigate to="mapa" replace />} />
             <Route path="mapa" element={<RoadmapPage />} />
-            <Route path="ajustes" element={<UserSettingsPage />} />
+            <Route path="grupo-apuestas" element={<GrupoApuestasPage />} />
+            <Route path="ajustes" element={<UserSettingsPage onOpenLogout={openLogoutConfirm} />} />
             <Route path="*" element={<Navigate to="mapa" replace />} />
           </Routes>
         </main>
