@@ -1,7 +1,8 @@
 [build.environment]
   # These client-side Vite env keys are intentionally public in the bundle.
   # Keep secrets scanning enabled and only omit known safe public keys.
-  SECRETS_SCAN_OMIT_KEYS = "VITE_BACKEND_URL,VITE_SUPABASE_KEY,VITE_SUPABASE_URL"
+  # Never add server/private keys here (for example *_SECRET_*, service-role keys, etc.).
+  SECRETS_SCAN_OMIT_KEYS = "VITE_BACKEND_URL,VITE_SUPABASE_KEY,VITE_SUPABASE_URL,VITE_STRIPE_PUBLIC_KEY,VITE_GOOGLE_CLIENT_ID"
 
 [[redirects]]
   from = "/*"
