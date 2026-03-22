@@ -362,6 +362,19 @@ html, body {
   }
 }
 
+@keyframes billing-card-mobile-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.billing-card-mobile-fade-in {
+  animation: billing-card-mobile-fade-in 0.7s ease-in-out both;
+}
+
 @keyframes btn-pulse-gold {
   0%        { transform: scale(1);    background-color: inherit; box-shadow: none; }
   20%       { transform: scale(1.10); background-color: #f59e0b; color: #78350f; box-shadow: 0 0 0 4px rgba(245,158,11,0.45), 0 6px 20px rgba(245,158,11,0.35); }
@@ -553,6 +566,12 @@ nav[data-loupe-direction='left'] .sidebar-loupe-slider {
 .roadmap-skip-hint-left {
   animation: roadmap-skip-hint-drift-left 1.8s ease-in-out infinite;
   will-change: transform;
+}
+
+@media (max-width: 767px) {
+  .dealer-card--tap-hint {
+    animation: none !important;
+  }
 }
 
 @media (min-width: 640px) {

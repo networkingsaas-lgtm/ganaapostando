@@ -46,7 +46,7 @@ export default function AprenderSection() {
   }, []);
 
   return (
-    <section className="bg-white py-12 sm:py-20 section-padding">
+    <section className="bg-white py-16 sm:py-20 section-padding">
       <div className="max-w-7xl mx-auto">
         <div className="max-w-4xl text-left">
           <HeaderTitle
@@ -64,14 +64,14 @@ export default function AprenderSection() {
 
         <div
           ref={cardsContainerRef}
-          className="mt-8 sm:mt-12 flex md:grid md:grid-cols-4 gap-3 sm:gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory px-1 pb-5 md:px-0 md:pb-0"
+          className="mt-10 sm:mt-12 flex md:grid md:grid-cols-4 gap-3 sm:gap-6 overflow-x-auto md:overflow-visible snap-x snap-proximity md:snap-none px-2 pt-4 pb-10 md:px-0 md:pt-0 md:pb-0"
         >
           {aprenderCards.map((card, index) => (
             <ScrollReveal
               key={`${card.title}-${index}`}
               delay={0}
               observeOnly
-              className="w-full min-w-[270px] max-w-[270px] snap-start md:min-w-0 md:max-w-none"
+              className="w-full min-w-[270px] max-w-[270px] snap-start py-2 md:min-w-0 md:max-w-none md:py-0"
             >
               <CartaDisenoCard
                 card={card}

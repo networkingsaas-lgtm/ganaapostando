@@ -19,6 +19,7 @@ interface SettingsRouteState {
 
 const BILLING_SCROLL_DURATION_MS = 1300;
 const BILLING_SELECTOR_TRANSITION_MS = 320;
+const BILLING_PANEL_ANIMATION_CLASS = 'transition-all duration-300';
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',
@@ -376,7 +377,7 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
                 </p>
               </div>
               <div className="flex items-center justify-between gap-4 border-b border-[#eceef2] px-4 py-3">
-                <p className="text-sm font-medium text-[#374151]">Ultimo acceso</p>
+                <p className="text-sm font-medium text-[#374151]">Último acceso</p>
                 <p className="max-w-[60%] truncate text-right text-sm font-semibold text-[#111827]">
                   {formatDateTime(authUser?.last_sign_in_at ?? null)}
                 </p>
@@ -402,7 +403,7 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
 
         {!showLayerBillingCards && (
           <div
-            className={`mt-10 overflow-x-auto pb-2 transition-all duration-300 ${
+            className={`mt-10 overflow-x-auto pb-2 ${BILLING_PANEL_ANIMATION_CLASS} ${
               isBillingSelectorClosing || isBillingSelectorEntering
                 ? 'pointer-events-none translate-y-2 scale-[0.98] opacity-0'
                 : 'translate-y-0 scale-100 opacity-100'
@@ -415,14 +416,14 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
               <div className="grid h-full grid-cols-2 gap-5 items-stretch">
                 <div className="relative flex h-full flex-col rounded-2xl border-4 border-gray-200 bg-white p-6 shadow-[0_10px_22px_rgba(17,24,39,0.10)] sm:p-8">
                   <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                    <span className="rebel-underline">El Metodo</span>.
+                    <span className="rebel-underline">El Método</span>.
                   </h3>
                   <div className="mt-5">
                     <span className="text-4xl font-bold text-gray-900 sm:text-5xl">EUR {methodPricingPlan?.price ?? '197'}</span>
-                    <span className="ml-1 text-sm text-gray-600">/ pago unico</span>
+                    <span className="ml-1 text-sm text-gray-600">/ pago único</span>
                   </div>
                   <p className="mt-4 text-base text-gray-600">
-                    {methodPricingPlan?.description ?? 'Aprende la metodologia completa en un solo plan.'}
+                    {methodPricingPlan?.description ?? 'Aprende la metodología completa en un solo plan.'}
                   </p>
                   <ul className="mt-5 space-y-2 text-sm text-gray-700">
                     <li>Acceso completo al programa principal.</li>
@@ -443,7 +444,7 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
                   className="relative flex h-full flex-col rounded-2xl border-4 border-blue-300 bg-[linear-gradient(180deg,#ffffff_0%,#f2f7ff_100%)] p-6 text-left shadow-[0_12px_24px_rgba(37,99,235,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(37,99,235,0.24)] sm:p-8"
                 >
                   <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                    <span className="rebel-underline">El Metodo</span>, por capas
+                    <span className="rebel-underline">El Método</span>, por capas
                   </h3>
                   <div className="mt-5">
                     <span className="text-4xl font-bold text-gray-900 sm:text-5xl">EUR {layerPricingPlan?.price ?? '1'}</span>
@@ -454,8 +455,8 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
                   </p>
                   <ul className="mt-5 space-y-2 text-sm text-gray-700">
                     <li>Empiezas con un coste bajo.</li>
-                    <li>Compras capa a capa segun tu avance.</li>
-                    <li>Control total del gasto por modulo.</li>
+                    <li>Compras capa a capa según tu avance.</li>
+                    <li>Control total del gasto por módulo.</li>
                   </ul>
                   <span className="mt-auto inline-flex w-full items-center justify-center rounded-lg bg-blue-500 py-3 text-sm font-semibold text-white">
                     Elegir por capas
@@ -472,15 +473,21 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
             <button
               type="button"
               onClick={handleBackToBillingSelector}
-              aria-label="Volver atras"
+              aria-label="Volver atrás"
               className="inline-flex items-center gap-2 px-2 py-1 text-sm font-semibold text-[#334155] transition hover:text-[#0f172a]"
             >
               <Undo2 className="h-5 w-5" />
-              <span>Atras</span>
+              <span>Atrás</span>
             </button>
           </div>
 
-        <div className={`mt-2 overflow-x-auto pb-2 transition-opacity duration-500 ${isLayerCardsEntering ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
+        <div
+          className={`mt-2 overflow-x-auto pb-2 ${BILLING_PANEL_ANIMATION_CLASS} ${
+            isLayerCardsEntering
+              ? 'opacity-100'
+              : 'pointer-events-none translate-y-2 scale-[0.98] opacity-0'
+          }`}
+        >
           <div
             className="relative mx-auto h-[36rem] sm:h-[39rem]"
             style={{ width: `${billingDeckLayout.width}px` }}
@@ -520,14 +527,20 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
                     setActiveBillingCard((current) => (current === slotIndex ? null : slotIndex));
                   }
                 }}
-                className={`absolute left-0 top-8 flex min-h-[30rem] w-56 flex-col rounded-2xl border-4 border-gray-200 bg-white p-5 transition-all duration-300 sm:min-h-[33rem] sm:w-64 sm:p-8 ${
+                className={`absolute left-0 top-8 flex min-h-[30rem] w-56 flex-col rounded-2xl border-4 border-gray-200 bg-white p-5 ${
+                  isMobileViewport
+                    ? 'transition-[opacity,box-shadow] duration-700 ease-in-out'
+                    : 'transition-all duration-700 ease-in-out'
+                } sm:min-h-[33rem] sm:w-64 sm:p-8 ${
                   isActive
                     ? useViewportCenter
-                      ? 'fixed -translate-x-1/2 -translate-y-1/2 scale-[1.02] shadow-[0_28px_52px_rgba(15,23,42,0.28)] ring-2 ring-blue-300/60'
-                      : '-translate-x-1/2 scale-[1.02] -translate-y-3 shadow-[0_28px_52px_rgba(15,23,42,0.28)] ring-2 ring-blue-300/60'
+                      ? 'billing-card-mobile-fade-in fixed -translate-x-1/2 -translate-y-1/2 scale-[1.02] opacity-100 blur-0 shadow-[0_28px_52px_rgba(15,23,42,0.28)] ring-2 ring-blue-300/60'
+                      : '-translate-x-1/2 scale-[1.02] -translate-y-3 opacity-100 blur-0 shadow-[0_28px_52px_rgba(15,23,42,0.28)] ring-2 ring-blue-300/60'
                     : activeBillingCard !== null
-                      ? 'scale-[0.98] translate-y-0 blur-[1.8px] opacity-50 shadow-[0_8px_16px_rgba(15,23,42,0.10)]'
-                      : 'scale-[0.99] translate-y-0 shadow-[0_16px_28px_rgba(15,23,42,0.18)] hover:-translate-y-1'
+                      ? isMobileViewport
+                        ? 'scale-[0.99] translate-y-0 opacity-100 blur-0 shadow-[0_12px_20px_rgba(15,23,42,0.14)]'
+                        : 'scale-[0.97] translate-y-0 opacity-90 blur-0 shadow-[0_10px_18px_rgba(15,23,42,0.12)]'
+                      : 'scale-[0.99] translate-y-0 opacity-100 blur-0 shadow-[0_16px_28px_rgba(15,23,42,0.18)] hover:-translate-y-1'
                 }`}
                 style={{
                   left: useViewportCenter ? '50%' : isActive ? '50%' : `${collapsedOffset}px`,
@@ -539,7 +552,7 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
                   {slotNumber}
                 </span>
                 <h3 className="mt-8 line-clamp-5 text-xl font-bold text-gray-900 sm:text-2xl">
-                  <span className="rebel-underline">El Metodo.</span>{' '}
+                  <span className="rebel-underline">El Método.</span>{' '}
                   {layerCard?.layer.title ?? `Capa ${slotNumber}`}
                 </h3>
                 <p className="mt-5 whitespace-nowrap text-3xl font-bold leading-none text-gray-900 sm:text-4xl">
@@ -580,7 +593,7 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
           onClick={onOpenLogout}
           className="w-full rounded-2xl bg-red-600 px-5 py-4 text-base font-semibold text-white transition hover:bg-red-700"
         >
-          Cerrar sesion
+          Cerrar sesión
         </button>
       </section>
     </div>
