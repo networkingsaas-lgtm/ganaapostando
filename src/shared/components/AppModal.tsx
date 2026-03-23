@@ -8,6 +8,7 @@ interface AppModalProps {
   disableClose?: boolean;
   showCloseButton?: boolean;
   closeAriaLabel?: string;
+  overlayClassName?: string;
   maxWidthClassName?: string;
   panelClassName?: string;
   children: ReactNode;
@@ -20,6 +21,7 @@ export default function AppModal({
   disableClose = false,
   showCloseButton = true,
   closeAriaLabel = 'Cerrar modal',
+  overlayClassName = '',
   maxWidthClassName = 'max-w-md',
   panelClassName = 'bg-white/92 backdrop-blur-md',
   children,
@@ -30,7 +32,7 @@ export default function AppModal({
 
   return (
     <div
-      className={`${isClosing ? 'modal-fade-out' : 'modal-fade-in'} fixed inset-0 z-50 flex items-center justify-center bg-[#020817]/55 px-4 backdrop-blur-sm`}
+      className={`${isClosing ? 'modal-fade-out' : 'modal-fade-in'} fixed inset-0 z-50 flex items-center justify-center bg-[#020817]/55 px-4 backdrop-blur-sm ${overlayClassName}`}
       onClick={() => {
         if (!disableClose) {
           onRequestClose();

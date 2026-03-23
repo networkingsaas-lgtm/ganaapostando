@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { loginWithSupabase } from '../../../lib/auth';
 import { getSupabaseClient } from '../../../lib/supabase';
 import AppModal from '../../../shared/components/AppModal';
-import HeaderTitle from '../../../shared/components/HeaderTitle';
 import PageReveal from '../../../shared/components/PageReveal';
 import CasasCarrusel from '../components/CasasCarrusel';
 
@@ -170,17 +169,17 @@ export default function HeroSection({ onLoginSuccess, onVerResultados, onRegistr
           </div>
         </div>
 
-        <div className="relative z-10 mx-auto max-w-7xl pt-24 sm:pt-32">
-          <div className="mx-auto max-w-5xl space-y-8 text-center sm:space-y-10">
+        <div className="relative z-10 mx-auto max-w-7xl pt-28 sm:pt-32">
+          <div className="mx-auto max-w-5xl space-y-5 text-center sm:space-y-6">
             <PageReveal delay={100}>
-              <HeaderTitle as="h1" className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-[0.95]">
-                CONVIERTE LAS <span className="text-white">APUESTAS</span> DEPORTIVAS EN <span className="title-span-highlight title-span-highlight-reverse">INGRESOS REALES</span>
-              </HeaderTitle>
+              <p className="mx-auto mb-4 w-full text-center text-5xl font-normal tracking-tight sm:mb-20 sm:text-8xl" style={{ fontFamily: "'Sora', sans-serif" }}>
+                <span className="rebel-underline-lg font-bold"> El Método.</span>
+              </p>
             </PageReveal>
 
             <PageReveal delay={180}>
               <p className="body-text mx-auto max-w-3xl text-white/90">
-                Aprende <span className="rebel-underline"> El Metodo.</span>
+                Convierte las apuestas deportivas en ingresos mensuales.
               </p>
             </PageReveal>
 
@@ -215,6 +214,8 @@ export default function HeroSection({ onLoginSuccess, onVerResultados, onRegistr
         isClosing={loginClosing}
         onRequestClose={closeLoginModal}
         disableClose={hasPendingLogin}
+        maxWidthClassName="max-w-[34rem] lg:max-w-[31rem]"
+        panelClassName="bg-white/95 backdrop-blur-md p-7 sm:p-8"
         closeAriaLabel="Cerrar ventana de inicio de sesión"
       >
         <h3 className="mt-2 text-center text-2xl font-bold">Iniciar sesión</h3>

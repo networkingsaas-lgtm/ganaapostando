@@ -244,8 +244,11 @@ export default function RoadmapContent({
       >
         {isLoading && (
           <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] text-center text-slate-900">
-            <LoaderCircle className="h-10 w-10 animate-spin text-slate-500" />
-            <p className="mt-4 text-lg font-semibold">Cargando mapa por capas...</p>
+            <p className="-translate-y-10 text-5xl font-bold tracking-tight sm:text-7xl">
+              <span className="rebel-underline">{'El M\u00E9todo'}</span>
+            </p>
+            <LoaderCircle className="mt-6 h-10 w-10 animate-spin text-slate-500" />
+            
           </div>
         )}
 
@@ -418,14 +421,12 @@ export default function RoadmapContent({
                                 borderColor: headerBorderColor,
                               }}
                             >
-                              <span className="flex items-center justify-center px-4 py-3 text-center sm:px-6 sm:py-4 lg:px-7 lg:py-5">
-                                <HeaderTitle
-                                  as="h2"
-                                  lineHeightClass="leading-[1.05]"
-                                  className={`text-[1.18rem] tracking-[0.02em] sm:text-[1.5rem] lg:text-[1.75rem] ${headerPrimaryTextClassName}`}
+                              <span className="flex items-center justify-center px-4 py-3 text-center font-bold sm:px-6 sm:py-4 lg:px-7 lg:py-5">
+                                <h2
+                                  className={`leading-[1.05] text-[1.18rem] tracking-[0.02em] sm:text-[1.5rem] lg:text-[1.75rem] ${headerPrimaryTextClassName}`}
                                 >
                                   {sectionIndex + 1}. {section.layer.title}
-                                </HeaderTitle>
+                                </h2>
                               </span>
                               <span
                                 className="flex w-[68px] items-center justify-center border-l sm:w-[80px] lg:w-[90px]"
@@ -839,3 +840,4 @@ export default function RoadmapContent({
     </PageReveal>
   );
 }
+

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { CartaDisenoCard, aprenderCards } from '../../aprender/cards';
-import HeaderTitle from '../../../shared/components/HeaderTitle';
 import ScrollReveal from '../../../shared/components/ScrollReveal';
 
 export default function AprenderSection() {
@@ -49,15 +48,11 @@ export default function AprenderSection() {
     <section className="bg-white py-16 sm:py-20 section-padding">
       <div className="max-w-7xl mx-auto">
         <div className="max-w-4xl text-left">
-          <HeaderTitle
-            useImpactFont={true}
-            as="h2"
-            lineHeightClass="leading-[1.16] sm:leading-[1.1]"
-            className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4"
-          >
-            <span className="title-span-highlight">Deja de pensar</span> "si sale 3 veces seguidas negro, <span className="title-span-highlight">la siguiente saldrá rojo</span>"
-          </HeaderTitle>
-          <p className="text-base sm:text-xl text-slate-600">
+          <p className="text-4xl sm:text-6xl font-normal mb-8 tracking-tight " style={{ fontFamily: "'Sora', sans-serif" }}>
+            La <span className="font-bold tracking-tight">rentabilidad</span> no nace de la intuición, sino del <span className="font-bold tracking-tight">análisis</span>.
+          </p>
+          
+          <p className="text-base sm:text-xl text-slate-600"style={{ fontFamily: "'Sora', sans-serif" }}>
             La estadística es una parte importante de <span className="rebel-underline"> El Método,</span> NO te dejes llevar por las emociones.
           </p>
         </div>

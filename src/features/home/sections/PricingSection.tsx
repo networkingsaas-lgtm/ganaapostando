@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PricingMobileSwiper from '../../pricing/components/PricingMobileSwiper';
 import { pricingPlans } from '../../pricing/plans';
-import HeaderTitle from '../../../shared/components/HeaderTitle';
 import ScrollReveal from '../../../shared/components/ScrollReveal';
 
 const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/test_14AcN5fLB0ftgjF6OrcIE00';
@@ -53,16 +52,15 @@ export default function PricingSection({
       )}
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="text-center mb-10 sm:mb-16">
-          <HeaderTitle
-            as="h2"
-            uppercase={true}
-            lineHeightClass="leading-[1.12] sm:leading-[1.06]"
-            className={`heading-lg sm:heading-xl font-bold mb-4 ${
+          <p
+            className={`mb-4 text-4xl font-normal tracking-tight sm:text-6xl ${
               isLightTheme ? 'text-slate-900' : 'text-white'
             }`}
+            style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            Invierte en Tu Educación Financiera
-          </HeaderTitle>
+            <span className="font-bold tracking-tight">Precios.</span>
+          </p>
+         
           <p className={`body-text max-w-3xl mx-auto ${isLightTheme ? 'text-slate-600' : 'text-white/85'}`}>
             Elige el nivel que mejor se adapte a tus objetivos.
           </p>

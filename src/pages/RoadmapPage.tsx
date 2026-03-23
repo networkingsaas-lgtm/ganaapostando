@@ -5,11 +5,13 @@ export default function RoadmapPage() {
   const { isLoading, error, layers } = useRoadmapData();
 
   return (
-    <RoadmapContent
-      isLoading={isLoading}
-      error={error}
-      layers={layers}
-      isFullscreen
-    />
+    <div style={{ fontFamily: "'Sora', sans-serif" }}>
+      <RoadmapContent
+        isLoading={isLoading}
+        error={error}
+        layers={layers}
+        isFullscreen
+      />
+    </div>
   );
 }

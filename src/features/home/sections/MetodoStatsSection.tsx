@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import HeroStatsCards from '../components/HeroStatsCards';
 import { usuarios } from '../../resultados/data';
-import HeaderTitle from '../../../shared/components/HeaderTitle';
-import TitleHighlightReverse from '../../../shared/components/TitleHighlightReverse';
 import { useCountUp } from '../../../shared/hooks/useCountUp';
 
 const roiMedio = usuarios.reduce((acc, u) => acc + (u.beneficioTotal / u.inversion) * 100, 0) / usuarios.length;
@@ -65,15 +63,13 @@ export default function MetodoStatsSection({ onVerResultados }: Props) {
 
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="max-w-5xl ml-auto text-right">
-          <HeaderTitle
-            as="h2"
-            lineHeightClass="leading-[1.16] sm:leading-[1.1]"
-            className="text-3xl sm:text-5xl font-bold mb-4"
-          >
-            Aquí no <TitleHighlightReverse inverted>incentivamos</TitleHighlightReverse> el juego, sino <TitleHighlightReverse inverted>el aprendizaje</TitleHighlightReverse>
-          </HeaderTitle>
-          <p className="text-base sm:text-xl text-white/85">
-            Cuando conoces los trucos y artimañas que utilizamos en <span className="rebel-underline"> El Método,</span> entiendes que apostar sin estrategia es perder. Por eso queremos enseñarte a ganar, igual que a nuestros alumnos:
+          <p className="mb-8 text-4xl font-normal sm:text-6xl tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
+            Resultados con <span className="font-bold tracking-tight">nuestra metodología</span>.
+          </p>
+         
+            
+          <p className="text-base sm:text-xl text-white/85"style={{ fontFamily: "'Sora', sans-serif" }}>
+            Nuestra formación está orientada a enseñar un método de trabajo estructurado y alejado de la superstición.
           </p>
         </div>
 

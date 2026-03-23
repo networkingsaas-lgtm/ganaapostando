@@ -1,5 +1,4 @@
 ﻿import { useState } from 'react';
-import HeaderTitle from '../shared/components/HeaderTitle';
 import PageReveal from '../shared/components/PageReveal';
 import { TrendingUp, BarChart2, DollarSign, ArrowLeft, Building2 } from 'lucide-react';
 import {
@@ -68,7 +67,7 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-white overflow-x-hidden" style={{ fontFamily: "'Sora', sans-serif" }}>
       {/* Header */}
       <PageReveal
         direction="down"
@@ -93,9 +92,9 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
             Volver
           </button>
           
-          <HeaderTitle as="h1" className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-[1.08] sm:leading-[1.02] mb-3">
-            Resultados <span className="text-blue-400">Verificados</span>
-          </HeaderTitle>
+          <p className="mb-8 text-4xl font-normal sm:text-6xl tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
+            Resultados <span className="font-bold tracking-tight">verificados</span>.
+          </p>
           <p className="body-text text-gray-300 max-w-2xl">
             Evolución real de beneficios de nuestros alumnos aplicando <span className="rebel-underline"> El Método.</span>
           </p>

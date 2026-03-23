@@ -315,7 +315,7 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
   }, [billingLayerCards, isCoursesLoading, location.key, location.state, showLayerBillingCards]);
 
   return (
-    <div className="m-0 space-y-6 bg-transparent p-0 text-slate-900">
+    <div className="m-0 space-y-6 bg-transparent p-0 text-slate-900" style={{ fontFamily: "'Sora', sans-serif" }}>
       <section className="relative z-30 overflow-visible rounded-[1.75rem] border border-[#d9d9de] bg-white/90 p-5 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
         {isUserLoading && (
           <div className="flex items-center gap-3 rounded-2xl bg-[#f5f6fa] px-4 py-3 text-[#4b5563]">
@@ -419,7 +419,7 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
                     <span className="rebel-underline">El Método</span>.
                   </h3>
                   <div className="mt-5">
-                    <span className="text-4xl font-bold text-gray-900 sm:text-5xl">EUR {methodPricingPlan?.price ?? '197'}</span>
+                    <span className="text-4xl font-bold text-gray-900 sm:text-5xl">{methodPricingPlan?.price ?? '197'} €</span>
                     <span className="ml-1 text-sm text-gray-600">/ pago único</span>
                   </div>
                   <p className="mt-4 text-base text-gray-600">
@@ -447,7 +447,7 @@ const UserSettingsPage: FC<Props> = ({ onOpenLogout }) => {
                     <span className="rebel-underline">El Método</span>, por capas
                   </h3>
                   <div className="mt-5">
-                    <span className="text-4xl font-bold text-gray-900 sm:text-5xl">EUR {layerPricingPlan?.price ?? '1'}</span>
+                    <span className="text-4xl font-bold text-gray-900 sm:text-5xl">{layerPricingPlan?.price ?? '1'} €</span>
                     <span className="ml-1 text-sm text-gray-600">/ desde</span>
                   </div>
                   <p className="mt-4 text-base text-gray-600">

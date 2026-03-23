@@ -72,7 +72,10 @@ function LandingPage({
   }, [location]);
 
   return (
-    <div className="min-h-screen hero-startup-bg startup-fixed-bg overflow-x-hidden">
+    <div
+      className="min-h-screen hero-startup-bg startup-fixed-bg overflow-x-hidden"
+      style={{ fontFamily: "'Sora', sans-serif" }}
+    >
       <HeroSection
         onLoginSuccess={onLoginSuccess}
         onVerResultados={onVerResultados}

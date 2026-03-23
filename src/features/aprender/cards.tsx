@@ -37,7 +37,7 @@ export function CartaDisenoCard({ card, index, shouldAutoFlip = false }: Props) 
   const [isFlipped, setIsFlipped] = useState(false);
   const [hasAutoFlipped, setHasAutoFlipped] = useState(false);
   const isOddCard = (index + 1) % 2 !== 0;
-  const cardIndexImage = isOddCard ? '/cartaindicenegro.png' : '/cartaindice.png';
+  const cardIndexImage = isOddCard ? '/cartaindicenegro.png' : '/image.png';
 
   useEffect(() => {
     if (!shouldAutoFlip || hasAutoFlipped) return;
@@ -68,7 +68,7 @@ export function CartaDisenoCard({ card, index, shouldAutoFlip = false }: Props) 
       aria-pressed={isFlipped}
       onClick={toggleCard}
     >
-      <div className="dealer-card__inner relative min-h-[384px] sm:min-h-[400px]">
+      <div className="dealer-card__inner relative min-h-[432px] sm:min-h-[456px]">
         <div className="dealer-card__face dealer-card__face--back border border-slate-300">
           <div className="absolute inset-6 overflow-hidden rounded-[22px] border border-slate-300 sm:inset-7">
             <img
@@ -93,12 +93,12 @@ export function CartaDisenoCard({ card, index, shouldAutoFlip = false }: Props) 
             aria-hidden="true"
             className="pointer-events-none absolute bottom-3 right-3 h-14 w-14 rotate-180 object-contain sm:bottom-4 sm:right-4 sm:h-16 sm:w-16"
           />
-          <div className="flex min-h-[312px] flex-col items-center justify-center rounded-[22px] px-5 py-7 text-center sm:min-h-[320px] sm:px-6 sm:py-7">
+          <div className="flex min-h-[356px] flex-col items-center justify-center rounded-[22px] px-5 py-7 text-center sm:min-h-[372px] sm:px-6 sm:py-7">
             <h3 className="mb-3 text-lg font-semibold tracking-wide text-slate-900 sm:text-xl">
               {card.title}
             </h3>
 
-            <p className="startup-font max-w-[22ch] text-sm leading-relaxed text-slate-700 sm:text-base">
+            <p lang="es" className="startup-font w-full text-sm leading-relaxed text-slate-700 sm:text-base book-hyphen-text">
               {card.underlinedText ? (
                 <>
                   {card.text.split(card.underlinedText)[0]}
