@@ -156,7 +156,7 @@ const writeRoadmapCache = (cacheKey: string, snapshot: RoadmapCacheSnapshot) => 
   }
 };
 
-export const useRoadmapData = () => {
+export const useRoadmapData = (refreshKey = 0) => {
   const [state, setState] = useState<RoadmapDataState>(INITIAL_ROADMAP_STATE);
 
   useEffect(() => {
@@ -184,7 +184,9 @@ export const useRoadmapData = () => {
         const cacheKey = getRoadmapCacheKey(backendUrl, userIdForAccess);
         const cachedLookup = readRoadmapCache(cacheKey);
 
-        if (cachedLookup.snapshot && cachedLookup.isFresh) {
+        const shouldUseFreshCache = refreshKey === 0;
+
+        if (cachedLookup.snapshot && cachedLookup.isFresh && shouldUseFreshCache) {
           setState({
             layers: cachedLookup.snapshot.layers,
             productsCount: cachedLookup.snapshot.productsCount,
@@ -288,7 +290,7 @@ export const useRoadmapData = () => {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [refreshKey]);
 
   return state;
 };

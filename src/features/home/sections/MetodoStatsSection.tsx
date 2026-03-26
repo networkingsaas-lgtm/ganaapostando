@@ -69,8 +69,7 @@ export default function MetodoStatsSection({ onVerResultados }: Props) {
          
             
           <p className="text-base sm:text-xl text-white/85"style={{ fontFamily: "'Sora', sans-serif" }}>
-            Nuestra formación está orientada a enseñar un método de trabajo estructurado y alejado de la superstición.
-          </p>
+            Datos reales que reflejan el impacto de una metodología basada en análisis, disciplina y toma de decisiones con criterio.          </p>
         </div>
 
         <div ref={statsRef} className="mt-8 sm:mt-12">

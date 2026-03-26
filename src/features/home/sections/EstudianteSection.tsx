@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import ScrollReveal from '../../../shared/components/ScrollReveal';
 
-const IPHONE_SLIDES = ['/mapacapa1.png', '/mapacapa4.png', '/ajustes.png'];
+const ESTUDIANTE_SCREEN = '/mapacapa1-lite.jpg';
 const METODO_CARDS = [
   {
     number: '01',
@@ -20,16 +20,6 @@ const METODO_CARDS = [
 ];
 
 export default function EstudianteSection() {
-  const [activeSlide, setActiveSlide] = useState(0);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setActiveSlide((previousSlide) => (previousSlide + 1) % IPHONE_SLIDES.length);
-    }, 3000);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
-
   return (
     <section className="bg-white py-12 sm:py-20 section-padding">
       <div className="mx-auto max-w-7xl">
@@ -38,27 +28,26 @@ export default function EstudianteSection() {
             <span className="font-bold tracking-tight">Aprende</span> nuestra metodología para <span className="font-bold tracking-tight">generar ingresos</span>.
           </p>
           <p className="text-base text-slate-600 sm:text-xl" style={{ fontFamily: "'Sora', sans-serif" }}>
-            Nuestra formación está orientada a enseñar un método de trabajo estructurado y alejado de la superstición.
+            Datos reales que reflejan el impacto de una metodología basada en análisis, disciplina y toma de decisiones con criterio.
           </p>
         </div>
 
         <div className="mt-10 grid items-center gap-8 lg:grid-cols-2">
           <div>
             <div className="flex flex-col gap-4">
-              {METODO_CARDS.map((card) => (
-                <article
-                  key={card.number}
-                  className="relative isolate w-full overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 pr-24 shadow-[0_40px_90px_rgba(15,23,42,0.42)]"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-y-0 right-3 z-0 flex items-center text-[6rem] font-black leading-none text-slate-100"
-                  >
-                    {card.number}
-                  </span>
-                  <h3 className="relative z-10 mt-2 text-base font-bold leading-tight text-slate-900">{card.title}</h3>
-                  <p className="relative z-10 mt-2 text-sm leading-relaxed text-slate-700">{card.description}</p>
-                </article>
+              {METODO_CARDS.map((card, index) => (
+                <ScrollReveal key={card.number} delay={index * 120} className="w-full sr-from-right">
+                  <article className="relative isolate w-full overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 pr-24 shadow-[0_40px_90px_rgba(15,23,42,0.42)]">
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-y-0 right-3 z-0 flex items-center text-[6rem] font-black leading-none text-slate-100"
+                    >
+                      {card.number}
+                    </span>
+                    <h3 className="relative z-10 mt-2 text-base font-bold leading-tight text-slate-900">{card.title}</h3>
+                    <p className="relative z-10 mt-2 text-sm leading-relaxed text-slate-700">{card.description}</p>
+                  </article>
+                </ScrollReveal>
               ))}
             </div>
           </div>
@@ -69,10 +58,11 @@ export default function EstudianteSection() {
                 <div className="relative aspect-[1359/2736] w-full">
                   <div className="absolute inset-x-[6.3%] inset-y-[3.2%] overflow-hidden rounded-[11%] bg-slate-900">
                     <img
-                      src="/pantallacarga.png"
+                      src="/pantallacarga-lite.jpg"
                       alt="Pantalla de carga"
                       className="h-full w-full object-cover"
                       loading="lazy"
+                      decoding="async"
                     />
                   </div>
 
@@ -89,38 +79,30 @@ export default function EstudianteSection() {
                 <div className="relative aspect-[1359/2736] w-full">
                   <div className="absolute inset-x-[6.3%] inset-y-[3.2%] overflow-hidden rounded-[11%] bg-slate-900">
                     <img
-                      src={IPHONE_SLIDES[activeSlide]}
+                      src={ESTUDIANTE_SCREEN}
                       alt=""
                       aria-hidden="true"
                       className="absolute inset-0 h-full w-full scale-105 object-cover opacity-20 blur-sm"
                       loading="lazy"
+                      decoding="async"
                     />
-
-                    {IPHONE_SLIDES.map((slideSrc, index) => (
-                      <img
-                        key={slideSrc}
-                        src={slideSrc}
-                        alt={`Captura ${index + 1} del método`}
-                        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-                          activeSlide === index ? 'opacity-100' : 'opacity-0'
-                        }`}
-                        loading={index === 0 ? 'eager' : 'lazy'}
-                      />
-                    ))}
+                    <img
+                      src={ESTUDIANTE_SCREEN}
+                      alt="Captura del método"
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
 
                   <div className="absolute inset-x-[6.3%] inset-y-[3.2%] overflow-hidden rounded-[11%]">
-                    {IPHONE_SLIDES.map((slideSrc, index) => (
-                      <img
-                        key={`${slideSrc}-fit`}
-                        src={slideSrc}
-                        alt={`Captura ${index + 1} del método`}
-                        className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-700 ${
-                          activeSlide === index ? 'opacity-100' : 'opacity-0'
-                        }`}
-                        loading={index === 0 ? 'eager' : 'lazy'}
-                      />
-                    ))}
+                    <img
+                      src={ESTUDIANTE_SCREEN}
+                      alt="Captura del método"
+                      className="absolute inset-0 h-full w-full object-contain"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
 
                   <img
