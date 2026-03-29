@@ -1,34 +1,79 @@
 import { getSupabaseApiClient } from '../core/supabaseClient';
 import { ApiError, getJson } from '../core/backendClient';
-import { getAccessUserId, normalizeLessonAccess } from '../../features/roadmap/utils';
-import type { LessonAccessResponse } from '../../features/roadmap/types';
+import {
+  normalizeLessonAccess,
+  normalizeLessonVideoAccessResponse,
+} from '../../features/roadmap/utils';
+import type {
+  LessonAccessResponse,
+  LessonVideoAccessResponse,
+} from '../../features/roadmap/types';
 
 const isAbortError = (error: unknown) =>
   error instanceof Error && error.name === 'AbortError';
 
-export const getRoadmapAccessUserId = async () => {
+const getRoadmapAccessSession = async () => {
   const supabase = getSupabaseApiClient();
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getSession();
 
-  if (userError || !userData.user) {
-    throw new Error('No se pudo obtener el usuario autenticado.');
+  if (error) {
+    return null;
   }
 
-  return getAccessUserId(userData.user);
+  return data.session ?? null;
 };
+
+export const getRoadmapAccessToken = async () => {
+  const session = await getRoadmapAccessSession();
+  return session?.access_token ?? null;
+};
+
+export const getRoadmapAccessUserId = async () => {
+  const session = await getRoadmapAccessSession();
+  return session?.user.id ?? 'anonymous';
+};
+
+export const buildAccessAuthHeaders = (accessToken: string | null) =>
+  accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
 
 export const fetchRoadmapLessonAccess = async (
   lessonId: number,
-  userId: string,
+  _userId?: string,
   signal?: AbortSignal,
 ): Promise<LessonAccessResponse | null> => {
   try {
-    const payload = await getJson<unknown>(
-      `/access/lessons/${lessonId}?userId=${encodeURIComponent(userId)}`,
-      { signal },
-    );
+    const accessToken = await getRoadmapAccessToken();
+    const payload = await getJson<unknown>(`/access/lessons/${lessonId}`, {
+      signal,
+      headers: buildAccessAuthHeaders(accessToken),
+    });
 
     return normalizeLessonAccess(payload);
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
+    if (error instanceof ApiError) {
+      return null;
+    }
+
+    return null;
+  }
+};
+
+export const fetchRoadmapLessonVideoAccess = async (
+  lessonId: number,
+  signal?: AbortSignal,
+): Promise<LessonVideoAccessResponse | null> => {
+  try {
+    const accessToken = await getRoadmapAccessToken();
+    const payload = await getJson<unknown>(`/access/lessons/${lessonId}/video`, {
+      signal,
+      headers: buildAccessAuthHeaders(accessToken),
+    });
+
+    return normalizeLessonVideoAccessResponse(payload);
   } catch (error) {
     if (isAbortError(error)) {
       throw error;

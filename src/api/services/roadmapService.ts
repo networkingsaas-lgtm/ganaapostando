@@ -2,28 +2,82 @@ import { ACCESS_REQUEST_CONCURRENCY } from '../../features/roadmap/constants';
 import { buildLayerSections, getPublishedLessons, runTasksWithConcurrency } from '../../features/roadmap/utils';
 import type { LayerSection, LessonAccessResponse } from '../../features/roadmap/types';
 import { fetchRoadmapCatalog } from './catalogService';
-import { fetchRoadmapLessonAccess, getRoadmapAccessUserId } from './accessService';
+import { ApiError, getJson } from '../core/backendClient';
+import { getSupabaseApiClient } from '../core/supabaseClient';
+import { normalizeLessonAccess } from '../../features/roadmap/utils';
 
 export interface RoadmapDataSnapshot {
   layers: LayerSection[];
   productsCount: number;
 }
 
+export interface RoadmapAccessContext {
+  sessionKey: string;
+  accessToken: string | null;
+}
+
 interface LoadRoadmapDataOptions {
   signal?: AbortSignal;
-  userId?: string;
+  accessToken?: string | null;
 }
+
+const ROADMAP_SESSION_KEY_ANON = 'anon';
+
+export const getRoadmapAccessContext = async (): Promise<RoadmapAccessContext> => {
+  const supabase = getSupabaseApiClient();
+  const { data, error } = await supabase.auth.getSession();
+
+  if (error || !data.session) {
+    return {
+      sessionKey: ROADMAP_SESSION_KEY_ANON,
+      accessToken: null,
+    };
+  }
+
+  return {
+    sessionKey: data.session.user.id || ROADMAP_SESSION_KEY_ANON,
+    accessToken: data.session.access_token,
+  };
+};
+
+export const fetchRoadmapLessonAccess = async (
+  lessonId: number,
+  accessToken: string | null,
+  signal?: AbortSignal,
+): Promise<LessonAccessResponse | null> => {
+  try {
+    const payload = await getJson<unknown>(`/access/lessons/${lessonId}`, {
+      signal,
+      headers: accessToken
+        ? {
+            Authorization: `Bearer ${accessToken}`,
+          }
+        : undefined,
+    });
+
+    return normalizeLessonAccess(payload);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error;
+    }
+
+    if (error instanceof ApiError) {
+      return null;
+    }
+
+    return null;
+  }
+};
 
 export const loadRoadmapData = async ({
   signal,
-  userId,
+  accessToken,
 }: LoadRoadmapDataOptions = {}): Promise<RoadmapDataSnapshot> => {
-  const accessUserId = userId ?? (await getRoadmapAccessUserId());
   const catalog = await fetchRoadmapCatalog(signal);
   const lessons = getPublishedLessons(catalog);
   const accessByLessonEntries = await runTasksWithConcurrency(
     lessons,
-    async (lesson) => [lesson.id, await fetchRoadmapLessonAccess(lesson.id, accessUserId, signal)] as const,
+    async (lesson) => [lesson.id, await fetchRoadmapLessonAccess(lesson.id, accessToken ?? null, signal)] as const,
     ACCESS_REQUEST_CONCURRENCY,
   );
 

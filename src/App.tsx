@@ -6,6 +6,7 @@ import MetodoStatsSection from './features/home/sections/MetodoStatsSection';
 import EstudianteSection from './features/home/sections/EstudianteSection';
 import PricingSection from './features/home/sections/PricingSection';
 import CTASection from './features/home/sections/CTASection';
+import Resultados from './pages/Resultados';
 import RouteSwiper from './shared/components/RouteSwiper';
 import {
   getCurrentSession,
@@ -13,9 +14,10 @@ import {
   watchAuthSession,
 } from './api/services/sessionService';
 
-const Resultados = lazy(() => import('./pages/Resultados'));
+const preloadRegistroPage = () => import('./pages/Registro');
+
 const PortalLayout = lazy(() => import('./pages/PortalLayout'));
-const Registro = lazy(() => import('./pages/Registro'));
+const Registro = lazy(preloadRegistroPage);
 
 type AppRoute = '/' | '/resultados' | '/dashboard' | '/registro';
 
@@ -154,6 +156,10 @@ function App() {
     return () => {
       unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    void preloadRegistroPage();
   }, []);
 
   return (

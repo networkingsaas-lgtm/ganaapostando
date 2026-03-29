@@ -14,6 +14,7 @@ import type {
   LayerSection,
   LessonAccessResponse,
   LessonNode,
+  LessonVideoAccessResponse,
   LessonVideoAccess,
   MapPoint,
   Product,
@@ -24,6 +25,47 @@ const getBackendUrl = () => trimTrailingSlash(getRequiredClientEnv('VITE_BACKEND
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
+
+const parseNumber = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsedValue = Number(value);
+    return Number.isFinite(parsedValue) ? parsedValue : NaN;
+  }
+
+  return NaN;
+};
+
+const parseOptionalString = (value: unknown) => {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return null;
+};
+
+export const normalizeLessonVideoAccess = (payload: unknown): LessonVideoAccess | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  return {
+    provider: parseOptionalString(payload.provider),
+    assetId: parseOptionalString(payload.assetId),
+    libraryId: parseOptionalString(payload.libraryId),
+    playbackUrl: parseOptionalString(payload.playbackUrl),
+    expiresAt: parseOptionalString(payload.expiresAt),
+    token: parseOptionalString(payload.token),
+    tokenized: Boolean(payload.tokenized),
+  };
+};
 
 export const normalizeCatalog = (payload: unknown): CatalogResponse => {
   if (!isRecord(payload)) {
@@ -47,18 +89,33 @@ export const normalizeLessonAccess = (payload: unknown): LessonAccessResponse | 
   }
 
   return {
-    lessonId: typeof payload.lessonId === 'number' ? payload.lessonId : Number(payload.lessonId),
+    lessonId: parseNumber(payload.lessonId),
     lessonSlug: typeof payload.lessonSlug === 'string' ? payload.lessonSlug : '',
     canAccess: Boolean(payload.canAccess),
     reason: typeof payload.reason === 'string' ? payload.reason : 'missing_entitlement',
-    layerId: typeof payload.layerId === 'number' ? payload.layerId : Number(payload.layerId),
+    layerId: parseNumber(payload.layerId),
     products: Array.isArray(payload.products) ? (payload.products as Product[]) : [],
     entitlement: isRecord(payload.entitlement)
       ? (payload.entitlement as unknown as Entitlement)
       : null,
-    videoAccess: isRecord(payload.videoAccess)
-      ? (payload.videoAccess as unknown as LessonVideoAccess)
-      : null,
+    videoAccess: normalizeLessonVideoAccess(payload.videoAccess ?? payload.video),
+  };
+};
+
+export const normalizeLessonVideoAccessResponse = (
+  payload: unknown,
+): LessonVideoAccessResponse | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  return {
+    lessonId: parseNumber(payload.lessonId),
+    lessonSlug: typeof payload.lessonSlug === 'string' ? payload.lessonSlug : '',
+    canAccess: Boolean(payload.canAccess),
+    reason: typeof payload.reason === 'string' ? payload.reason : 'missing_entitlement',
+    layerId: parseNumber(payload.layerId),
+    video: normalizeLessonVideoAccess(payload.video ?? payload.videoAccess),
   };
 };
 
@@ -136,6 +193,10 @@ export const getReasonLabel = (reason: string) => {
 
   if (normalizedReason === 'missing_entitlement') {
     return 'Falta acceso';
+  }
+
+  if (normalizedReason === 'authentication_required') {
+    return 'Autenticacion requerida';
   }
 
   return reason;

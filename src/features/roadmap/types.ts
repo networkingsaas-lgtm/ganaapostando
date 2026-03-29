@@ -66,6 +66,11 @@ export interface Entitlement {
 export interface LessonVideoAccess {
   provider: string | null;
   assetId: string | null;
+  libraryId: string | null;
+  playbackUrl: string | null;
+  expiresAt: string | null;
+  token: string | null;
+  tokenized: boolean;
 }
 
 export interface LessonAccessResponse {
@@ -77,6 +82,15 @@ export interface LessonAccessResponse {
   products: Product[];
   entitlement: Entitlement | null;
   videoAccess: LessonVideoAccess | null;
+}
+
+export interface LessonVideoAccessResponse {
+  lessonId: number;
+  lessonSlug: string;
+  canAccess: boolean;
+  reason: string;
+  layerId: number;
+  video: LessonVideoAccess | null;
 }
 
 export interface LessonNode {

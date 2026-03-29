@@ -11,6 +11,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createCheckoutSession } from '../../../api/services/paymentsService';
 import PageReveal from '../../../shared/components/PageReveal';
 import ScrollReveal from '../../../shared/components/ScrollReveal';
 import HeaderTitle from '../../../shared/components/HeaderTitle';
@@ -18,7 +19,9 @@ import {
   getRoadmapLayerTheme,
   ROADMAP_PURCHASE_ENABLED_BUTTON_PALETTE,
 } from '../constants';
+import LessonVideoPanel from './LessonVideoPanel';
 import RoadmapHintBubble from './RoadmapHintBubble';
+import { useLessonVideoPlayback } from '../hooks/useLessonVideoPlayback';
 import type { LayerSection } from '../types';
 import { formatPriceEur } from '../utils';
 
@@ -34,6 +37,11 @@ interface Props {
 type ActiveBubble =
   | { type: 'lesson'; layerId: number; lessonId: number }
   | { type: 'purchase'; layerId: number };
+
+interface CheckoutTarget {
+  productId: number;
+  lessonId: number;
+}
 
 const CURVE_LEFT_X = 14;
 const CURVE_RIGHT_X = 86;
@@ -75,6 +83,50 @@ const getNodeTop = (nodeIndex: number) => NODE_CURVE_TOP + nodeIndex * NODE_STEP
 const getRevealDelay = (revealIndex: number) =>
   `${NODE_REVEAL_BASE_DELAY_MS + revealIndex * NODE_REVEAL_STEP_MS}ms`;
 
+const getLayerProductId = (layerSection: LayerSection) => {
+  const mappedProductId = layerSection.mappedProducts[0]?.id;
+
+  if (typeof mappedProductId === 'number') {
+    return mappedProductId;
+  }
+
+  for (const lessonNode of layerSection.lessons) {
+    const lessonProductId = lessonNode.products[0]?.id;
+
+    if (typeof lessonProductId === 'number') {
+      return lessonProductId;
+    }
+  }
+
+  return null;
+};
+
+const buildLayerCheckoutTarget = (layerSection: LayerSection): CheckoutTarget | null => {
+  const productId = getLayerProductId(layerSection);
+  const lessonId = layerSection.lessons[0]?.lesson.id;
+
+  if (!productId || !lessonId) {
+    return null;
+  }
+
+  return {
+    productId,
+    lessonId,
+  };
+};
+
+const buildSettingsReturnUrl = (
+  checkoutState: 'success' | 'cancel',
+  productId: number,
+  lessonId: number,
+) => {
+  const returnUrl = new URL('/dashboard/ajustes', window.location.origin);
+  returnUrl.searchParams.set('checkout', checkoutState);
+  returnUrl.searchParams.set('productId', String(productId));
+  returnUrl.searchParams.set('lessonId', String(lessonId));
+  return returnUrl.toString();
+};
+
 export default function RoadmapContent({
   isLoading,
   error,
@@ -93,6 +145,8 @@ export default function RoadmapContent({
   const [flippedLayerId, setFlippedLayerId] = useState<number | null>(null);
   const [bubbleShift, setBubbleShift] = useState(0);
   const [bubbleArrowOffset, setBubbleArrowOffset] = useState(0);
+  const [isStartingCheckoutByLayerId, setIsStartingCheckoutByLayerId] = useState<number | null>(null);
+  const [purchaseErrorByLayerId, setPurchaseErrorByLayerId] = useState<Record<number, string>>({});
   const hasAutoScrolledToUnlockedLayerRef = useRef(false);
   const contentBoundsRef = useRef<HTMLDivElement | null>(null);
   const activeBubbleRef = useRef<HTMLDivElement | null>(null);
@@ -108,6 +162,20 @@ export default function RoadmapContent({
 
     return starts;
   }, [layers]);
+  const activeLessonNode = useMemo(() => {
+    if (activeBubble?.type !== 'lesson') {
+      return null;
+    }
+
+    const activeSection = layers.find((section) => section.layer.id === activeBubble.layerId);
+
+    if (!activeSection) {
+      return null;
+    }
+
+    return activeSection.lessons.find((lessonNode) => lessonNode.lesson.id === activeBubble.lessonId) ?? null;
+  }, [activeBubble, layers]);
+  const lessonVideoPlayback = useLessonVideoPlayback(activeLessonNode?.lesson.id ?? null);
 
   const handleCloseBubble = useCallback(() => {
     setActiveBubble(null);
@@ -133,6 +201,16 @@ export default function RoadmapContent({
   }, []);
 
   const handleTogglePurchaseBubble = useCallback((layerId: number) => {
+    setPurchaseErrorByLayerId((current) => {
+      if (!(layerId in current)) {
+        return current;
+      }
+
+      const nextState = { ...current };
+      delete nextState[layerId];
+      return nextState;
+    });
+
     setActiveBubble((currentBubble) => {
       if (currentBubble?.type === 'purchase' && currentBubble.layerId === layerId) {
         return null;
@@ -143,6 +221,54 @@ export default function RoadmapContent({
         layerId,
       };
     });
+  }, []);
+
+  const handleStartLayerCheckout = useCallback(async (layerSection: LayerSection) => {
+    const checkoutTarget = buildLayerCheckoutTarget(layerSection);
+
+    if (!checkoutTarget) {
+      setPurchaseErrorByLayerId((current) => ({
+        ...current,
+        [layerSection.layer.id]: 'Esta capa no tiene producto asociado todavia.',
+      }));
+      return;
+    }
+
+    setPurchaseErrorByLayerId((current) => {
+      if (!(layerSection.layer.id in current)) {
+        return current;
+      }
+
+      const nextState = { ...current };
+      delete nextState[layerSection.layer.id];
+      return nextState;
+    });
+    setIsStartingCheckoutByLayerId(layerSection.layer.id);
+
+    try {
+      const checkoutUrl = await createCheckoutSession({
+        productId: checkoutTarget.productId,
+        successUrl: buildSettingsReturnUrl(
+          'success',
+          checkoutTarget.productId,
+          checkoutTarget.lessonId,
+        ),
+        cancelUrl: buildSettingsReturnUrl(
+          'cancel',
+          checkoutTarget.productId,
+          checkoutTarget.lessonId,
+        ),
+      });
+
+      window.location.assign(checkoutUrl);
+    } catch (error) {
+      setPurchaseErrorByLayerId((current) => ({
+        ...current,
+        [layerSection.layer.id]:
+          error instanceof Error ? error.message : 'No se pudo iniciar el checkout.',
+      }));
+      setIsStartingCheckoutByLayerId(null);
+    }
   }, []);
 
   const handleRevealLayer = useCallback((layerId: number) => {
@@ -192,7 +318,14 @@ export default function RoadmapContent({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [activeBubble, measureBubblePosition]);
+  }, [
+    activeBubble,
+    lessonVideoPlayback.errorMessage,
+    lessonVideoPlayback.isLoading,
+    lessonVideoPlayback.reason,
+    lessonVideoPlayback.video,
+    measureBubblePosition,
+  ]);
 
   useEffect(() => {
     if (!activeBubble) {
@@ -373,6 +506,8 @@ export default function RoadmapContent({
                 'Sin descripcion disponible.';
               const isPurchaseBubbleOpen =
                 activeBubble?.type === 'purchase' && activeBubble.layerId === section.layer.id;
+              const purchaseError = purchaseErrorByLayerId[section.layer.id] ?? null;
+              const isStartingCheckout = isStartingCheckoutByLayerId === section.layer.id;
               const isSkipDisabledByEntitlement = hasLayerEntitlement;
               const shouldShowExcelPromo = shouldShowExcelPromoBase && !isExcelPromoDismissed;
               const shouldShowMoneyPromo = shouldShowMoneyPromoBase && !isMoneyPromoDismissed;
@@ -701,11 +836,21 @@ export default function RoadmapContent({
                                 {formatPriceEur(section.layer.price_eur)}
                               </p>
                               <p className="mt-3 text-sm font-semibold text-gray-600">Disponible</p>
+                              {purchaseError && (
+                                <p className="mt-3 text-sm font-medium text-red-600">
+                                  {purchaseError}
+                                </p>
+                              )}
                               <button
                                 type="button"
-                                className="mt-auto w-full rounded-xl bg-[#3b82f6] py-3 text-sm font-semibold text-white transition hover:bg-[#2563eb]"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleStartLayerCheckout(section);
+                                }}
+                                disabled={isStartingCheckout}
+                                className="mt-auto w-full rounded-xl bg-[#3b82f6] py-3 text-sm font-semibold text-white transition hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:bg-[#93c5fd]"
                               >
-                                Comprar capa
+                                {isStartingCheckout ? 'Redirigiendo...' : 'Comprar capa'}
                               </button>
                             </div>
                           </div>
@@ -837,6 +982,11 @@ export default function RoadmapContent({
                                 <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base sm:leading-7 lg:text-lg lg:leading-8">
                                   {lessonNode.lesson.summary?.trim() || 'Sin descripcion.'}
                                 </p>
+                                <LessonVideoPanel
+                                  lessonTitle={lessonNode.lesson.title}
+                                  playbackState={lessonVideoPlayback}
+                                  accessReason={activeLessonNode?.access?.reason ?? null}
+                                />
                               </div>
                             )}
                           </div>

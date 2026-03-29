@@ -5,8 +5,11 @@ import {
   ROADMAP_CACHE_VERSION,
 } from '../constants';
 import type { RoadmapDataState } from '../types';
-import { getRoadmapAccessUserId } from '../../../api/services/accessService';
-import { loadRoadmapData, type RoadmapDataSnapshot } from '../../../api/services/roadmapService';
+import {
+  getRoadmapAccessContext,
+  loadRoadmapData,
+  type RoadmapDataSnapshot,
+} from '../../../api/services/roadmapService';
 
 const INITIAL_ROADMAP_STATE: RoadmapDataState = {
   layers: [],
@@ -31,8 +34,8 @@ interface RoadmapCacheLookup {
 
 const roadmapMemoryCache = new Map<string, RoadmapCachePayload>();
 
-const getRoadmapCacheKey = (backendUrl: string, userId: string) =>
-  `${ROADMAP_CACHE_KEY_PREFIX}:${backendUrl}:${userId}`;
+const getRoadmapCacheKey = (backendUrl: string, sessionKey: string) =>
+  `${ROADMAP_CACHE_KEY_PREFIX}:${backendUrl}:${sessionKey}`;
 
 const getLocalStorage = () => {
   if (typeof window === 'undefined') {
@@ -159,9 +162,9 @@ export const useRoadmapData = (refreshKey = 0) => {
       let staleSnapshot: RoadmapCacheSnapshot | null = null;
 
       try {
-        const userIdForAccess = await getRoadmapAccessUserId();
+        const accessContext = await getRoadmapAccessContext();
         const backendUrl = getBackendApiBaseUrl();
-        const cacheKey = getRoadmapCacheKey(backendUrl, userIdForAccess);
+        const cacheKey = getRoadmapCacheKey(backendUrl, accessContext.sessionKey);
         const cachedLookup = readRoadmapCache(cacheKey);
 
         const shouldUseFreshCache = refreshKey === 0;
@@ -179,7 +182,7 @@ export const useRoadmapData = (refreshKey = 0) => {
         staleSnapshot = cachedLookup.snapshot;
         const nextSnapshot = await loadRoadmapData({
           signal: controller.signal,
-          userId: userIdForAccess,
+          accessToken: accessContext.accessToken,
         });
 
         writeRoadmapCache(cacheKey, nextSnapshot);
