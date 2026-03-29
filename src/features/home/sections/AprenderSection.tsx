@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { CartaDisenoCard, aprenderCards } from '../../aprender/cards';
+import { CartaDisenoCard } from '../../aprender/cards';
+import { aprenderCards } from '../../aprender/cards.data';
 import ScrollReveal from '../../../shared/components/ScrollReveal';
 
 export default function AprenderSection() {

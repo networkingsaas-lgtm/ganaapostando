@@ -1,21 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getSupabaseClient } from '../../../lib/supabase';
+import { getBackendApiBaseUrl } from '../../../api/core/backendClient';
 import {
-  ACCESS_REQUEST_CONCURRENCY,
   ROADMAP_CACHE_TTL_MS,
   ROADMAP_CACHE_VERSION,
 } from '../constants';
-import type { LessonAccessResponse, RoadmapDataState } from '../types';
-import {
-  buildLayerSections,
-  getAccessUserId,
-  getBackendUrl,
-  getPublishedLessons,
-  getResponseErrorMessage,
-  normalizeCatalog,
-  normalizeLessonAccess,
-  runTasksWithConcurrency,
-} from '../utils';
+import type { RoadmapDataState } from '../types';
+import { getRoadmapAccessUserId } from '../../../api/services/accessService';
+import { loadRoadmapData, type RoadmapDataSnapshot } from '../../../api/services/roadmapService';
 
 const INITIAL_ROADMAP_STATE: RoadmapDataState = {
   layers: [],
@@ -26,10 +17,7 @@ const INITIAL_ROADMAP_STATE: RoadmapDataState = {
 
 const ROADMAP_CACHE_KEY_PREFIX = 'roadmap-map-cache';
 
-interface RoadmapCacheSnapshot {
-  layers: RoadmapDataState['layers'];
-  productsCount: number;
-}
+type RoadmapCacheSnapshot = Pick<RoadmapDataSnapshot, 'layers' | 'productsCount'>;
 
 interface RoadmapCachePayload extends RoadmapCacheSnapshot {
   version: number;
@@ -171,16 +159,8 @@ export const useRoadmapData = (refreshKey = 0) => {
       let staleSnapshot: RoadmapCacheSnapshot | null = null;
 
       try {
-        const supabase = getSupabaseClient();
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !userData.user) {
-          throw new Error('No se pudo obtener el usuario autenticado.');
-        }
-
-        const authenticatedUser = userData.user;
-        const userIdForAccess = getAccessUserId(authenticatedUser);
-        const backendUrl = getBackendUrl();
+        const userIdForAccess = await getRoadmapAccessUserId();
+        const backendUrl = getBackendApiBaseUrl();
         const cacheKey = getRoadmapCacheKey(backendUrl, userIdForAccess);
         const cachedLookup = readRoadmapCache(cacheKey);
 
@@ -197,59 +177,10 @@ export const useRoadmapData = (refreshKey = 0) => {
         }
 
         staleSnapshot = cachedLookup.snapshot;
-        const catalogResponse = await fetch(`${backendUrl}/catalog`, {
+        const nextSnapshot = await loadRoadmapData({
           signal: controller.signal,
-          headers: {
-            Accept: 'application/json',
-          },
+          userId: userIdForAccess,
         });
-
-        if (!catalogResponse.ok) {
-          throw new Error(await getResponseErrorMessage(catalogResponse));
-        }
-
-        const catalog = normalizeCatalog(await catalogResponse.json());
-        const lessons = getPublishedLessons(catalog);
-        const accessByLessonEntries = await runTasksWithConcurrency(
-          lessons,
-          async (lesson) => {
-            try {
-              const accessResponse = await fetch(
-                `${backendUrl}/access/lessons/${lesson.id}?userId=${encodeURIComponent(userIdForAccess)}`,
-                {
-                  signal: controller.signal,
-                  headers: {
-                    Accept: 'application/json',
-                  },
-                },
-              );
-
-              if (!accessResponse.ok) {
-                return [lesson.id, null] as const;
-              }
-
-              const accessPayload = await accessResponse.json();
-              return [lesson.id, normalizeLessonAccess(accessPayload)] as const;
-            } catch (accessError) {
-              if ((accessError as Error).name === 'AbortError') {
-                throw accessError;
-              }
-
-              return [lesson.id, null] as const;
-            }
-          },
-          ACCESS_REQUEST_CONCURRENCY,
-        );
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        const accessByLessonId = new Map<number, LessonAccessResponse | null>(accessByLessonEntries);
-        const nextSnapshot: RoadmapCacheSnapshot = {
-          layers: buildLayerSections(catalog, accessByLessonId),
-          productsCount: catalog.products.length,
-        };
 
         writeRoadmapCache(cacheKey, nextSnapshot);
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface RouteScene<T extends string> {
   id: number;
@@ -28,23 +28,31 @@ export default function RouteSwiper<T extends string>({
   renderRoute,
 }: RouteSwiperProps<T>) {
   const [scenes, setScenes] = useState<RouteScene<T>[]>([{ id: 1, route: currentRoute }]);
-  const sceneIdRef = useRef(1);
-  const transitionTimeoutRef = useRef<number | null>(null);
+  const [pendingTransition, setPendingTransition] = useState<{
+    sceneId: number;
+    nextRoute: T;
+    durationMs: number;
+  } | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [currentRoute]);
 
   useEffect(() => {
-    return () => {
-      if (transitionTimeoutRef.current !== null) {
-        window.clearTimeout(transitionTimeoutRef.current);
-      }
-    };
-  }, []);
+    if (!pendingTransition) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setScenes([{ id: pendingTransition.sceneId, route: pendingTransition.nextRoute }]);
+      setPendingTransition(null);
+    }, pendingTransition.durationMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pendingTransition]);
 
   useEffect(() => {
-    if (scenes.length > 1) {
+    if (pendingTransition || scenes.length > 1) {
       return;
     }
 
@@ -52,24 +60,15 @@ export default function RouteSwiper<T extends string>({
       return;
     }
 
-    const nextSceneId = sceneIdRef.current + 1;
-    sceneIdRef.current = nextSceneId;
-    setScenes([{ id: nextSceneId, route: currentRoute }]);
-  }, [currentRoute, scenes]);
-
-  const finalizarTransicion = (sceneId: number, nextRoute: T, durationMs: number) => {
-    if (transitionTimeoutRef.current !== null) {
-      window.clearTimeout(transitionTimeoutRef.current);
-    }
-
-    transitionTimeoutRef.current = window.setTimeout(() => {
-      setScenes([{ id: sceneId, route: nextRoute }]);
-      transitionTimeoutRef.current = null;
-    }, durationMs);
-  };
+    const nextSceneId = (scenes[0]?.id ?? 0) + 1;
+    const frameId = window.requestAnimationFrame(() => {
+      setScenes([{ id: nextSceneId, route: currentRoute }]);
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [currentRoute, pendingTransition, scenes]);
 
   const navigate = (nextRoute: T) => {
-    if (scenes.length > 1 || currentRoute === nextRoute) {
+    if (pendingTransition || scenes.length > 1 || currentRoute === nextRoute) {
       return;
     }
 
@@ -82,16 +81,19 @@ export default function RouteSwiper<T extends string>({
       return;
     }
 
-    const currentScene = scenes[0];
-    const nextSceneId = sceneIdRef.current + 1;
-    sceneIdRef.current = nextSceneId;
+    const currentScene = scenes[0] ?? { id: 0, route: currentRoute };
+    const nextSceneId = currentScene.id + 1;
 
     setScenes([
       { ...currentScene, animationClass: transition.leaveClass },
       { id: nextSceneId, route: nextRoute, animationClass: transition.enterClass },
     ]);
+    setPendingTransition({
+      sceneId: nextSceneId,
+      nextRoute,
+      durationMs: transition.durationMs,
+    });
     onNavigate(nextRoute);
-    finalizarTransicion(nextSceneId, nextRoute, transition.durationMs);
   };
 
   const isTransitioning = scenes.length > 1;

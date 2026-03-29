@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSupabaseClient } from '../../../lib/supabase';
+import { getCurrentUser } from '../../../api/services/sessionService';
 import { getAuthenticatedUserLabel } from '../utils';
 
 export const useAuthUserLabel = () => {
@@ -10,14 +10,13 @@ export const useAuthUserLabel = () => {
 
     const loadUserLabel = async () => {
       try {
-        const supabase = getSupabaseClient();
-        const { data, error } = await supabase.auth.getUser();
+        const user = await getCurrentUser();
 
-        if (!isMounted || error) {
+        if (!isMounted) {
           return;
         }
 
-        setAuthUserLabel(getAuthenticatedUserLabel(data.user ?? null));
+        setAuthUserLabel(getAuthenticatedUserLabel(user));
       } catch {
         if (isMounted) {
           setAuthUserLabel('Usuario autenticado');

@@ -1,5 +1,5 @@
 import { ArrowLeft, PanelLeft } from 'lucide-react';
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { SIDEBAR_ITEMS, SIDEBAR_WIDTH_CLASS } from '../constants';
 import { useRoadmapData } from '../../roadmap/hooks/useRoadmapData';
 
@@ -50,34 +50,32 @@ export default function PortalSidebar({
   );
   const isPremium = purchasedLayersCount > 0;
   const mobileLoupeCount = mobileSidebarItems.length;
-  const [loupeIndex, setLoupeIndex] = useState(activeNavIndex);
-  const [loupePrev, setLoupePrev] = useState(activeNavIndex);
-  const [loupeDirection, setLoupeDirection] = useState<'left' | 'right'>('right');
+  const loupeNavRef = useRef<HTMLElement | null>(null);
+  const previousLoupeIndexRef = useRef(activeNavIndex);
 
-  useEffect(() => {
-    setLoupeIndex((current) => {
-      if (current === activeNavIndex) {
-        return current;
-      }
+  useLayoutEffect(() => {
+    const nav = loupeNavRef.current;
+    if (!nav) {
+      return;
+    }
 
-      setLoupePrev(current);
-      setLoupeDirection(activeNavIndex > current ? 'right' : 'left');
-      return activeNavIndex;
-    });
+    nav.dataset.loupeDirection =
+      activeNavIndex >= previousLoupeIndexRef.current ? 'right' : 'left';
+    previousLoupeIndexRef.current = activeNavIndex;
   }, [activeNavIndex]);
 
   const loupeVariables = {
     '--loupe-count': mobileLoupeCount,
-    '--loupe-index': loupeIndex,
-    '--loupe-prev': loupePrev,
+    '--loupe-index': activeNavIndex,
     '--loupe-pad': '8px',
   } as CSSProperties & Record<string, string | number>;
 
   return (
     <>
       <nav
+        ref={loupeNavRef}
         className="pointer-events-none fixed inset-x-0 bottom-0 z-[300] px-4 pb-[max(12px,env(safe-area-inset-bottom))] lg:hidden"
-        data-loupe-direction={loupeDirection}
+        data-loupe-direction="right"
       >
         <div
           className="pointer-events-auto relative mx-auto w-full max-w-[430px] rounded-[1.65rem] border border-black/10 bg-slate-100/90 p-2 shadow-[0_22px_44px_rgba(2,8,35,0.28)] backdrop-blur-[2px]"

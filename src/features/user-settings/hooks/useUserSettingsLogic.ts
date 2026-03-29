@@ -1,18 +1,14 @@
-﻿import type { User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { createCheckoutSession } from '../../../api/services/paymentsService';
+import { getCurrentUser } from '../../../api/services/sessionService';
+import { pollLessonAccessActivation } from '../../../api/services/userAccessService';
 import { getAuthenticatedUserLabel } from '../../portal-shell/utils';
 import { useRoadmapData } from '../../roadmap/hooks/useRoadmapData';
 import type { LayerSection } from '../../roadmap/types';
-import {
-  formatPriceEur,
-  getAccessUserId,
-  getBackendUrl,
-  getResponseErrorMessage,
-  normalizeLessonAccess,
-} from '../../roadmap/utils';
+import { formatPriceEur } from '../../roadmap/utils';
 import { pricingPlans } from '../../pricing/plans';
-import { getSupabaseClient } from '../../../lib/supabase';
 
 interface SettingsRouteState {
   focusLayerId?: number;
@@ -22,11 +18,10 @@ interface SettingsRouteState {
 const BILLING_SCROLL_DURATION_MS = 1300;
 const BILLING_SELECTOR_TRANSITION_MS = 320;
 const BILLING_PANEL_ANIMATION_CLASS = 'transition-all duration-300';
-const ACCESS_POLL_INTERVAL_MS = 1800;
-const ACCESS_POLL_MAX_ATTEMPTS = 14;
 
-interface CheckoutSessionResponse {
-  checkoutUrl: string;
+interface CheckoutTarget {
+  productId: number;
+  lessonId: number;
 }
 
 const parsePositiveInteger = (value: string | null) => {
@@ -56,6 +51,24 @@ const getLayerProductId = (layerSection: LayerSection | undefined) => {
   }
 
   return null;
+};
+
+const buildLayerCheckoutTarget = (layerSection: LayerSection | undefined): CheckoutTarget | null => {
+  if (!layerSection) {
+    return null;
+  }
+
+  const productId = getLayerProductId(layerSection);
+  const lessonId = layerSection.lessons[0]?.lesson.id;
+
+  if (!productId || !lessonId) {
+    return null;
+  }
+
+  return {
+    productId,
+    lessonId,
+  };
 };
 
 const buildSettingsReturnUrl = (
@@ -187,10 +200,9 @@ export const useUserSettingsLogic = () => {
       setUserError(null);
 
       try {
-        const supabase = getSupabaseClient();
-        const { data: userData, error: userLoadError } = await supabase.auth.getUser();
+        const user = await getCurrentUser();
 
-        if (userLoadError || !userData.user) {
+        if (!user) {
           throw new Error('No se pudo cargar el usuario autenticado.');
         }
 
@@ -198,7 +210,7 @@ export const useUserSettingsLogic = () => {
           return;
         }
 
-        setAuthUser(userData.user);
+        setAuthUser(user);
       } catch (error) {
         if (!isMounted) {
           return;
@@ -307,6 +319,42 @@ export const useUserSettingsLogic = () => {
         .slice(0, 5),
     [layers],
   );
+  const layerPlanPrice = useMemo(() => {
+    const firstLayer = billingLayerCards[0];
+
+    if (firstLayer) {
+      return formatPriceEur(firstLayer.layer.price_eur);
+    }
+
+    return `${layerPricingPlan?.price ?? '13.25'} €`;
+  }, [billingLayerCards, layerPricingPlan?.price]);
+  const getCandidateLessonIdsForProduct = useCallback((productId: number, fallbackLessonId: number) => {
+    const lessonIds = new Set<number>([fallbackLessonId]);
+
+    for (const section of layers) {
+      const layerHasProduct = section.mappedProducts.some((product) => product.id === productId);
+
+      for (const lessonNode of section.lessons) {
+        const lessonHasProduct = lessonNode.products.some((product) => product.id === productId);
+
+        if (layerHasProduct || lessonHasProduct) {
+          lessonIds.add(lessonNode.lesson.id);
+        }
+      }
+    }
+
+    return Array.from(lessonIds);
+  }, [layers]);
+
+  const startCheckout = useCallback(async ({ productId, lessonId }: CheckoutTarget) => {
+    const checkoutUrl = await createCheckoutSession({
+      productId,
+      successUrl: buildSettingsReturnUrl('success', productId, lessonId),
+      cancelUrl: buildSettingsReturnUrl('cancel', productId, lessonId),
+    });
+
+    window.location.assign(checkoutUrl);
+  }, []);
 
   const handleGoToBilling = useCallback(() => {
     const billingSection = document.getElementById('billing-capas');
@@ -371,10 +419,9 @@ export const useUserSettingsLogic = () => {
       return;
     }
 
-    const productId = getLayerProductId(layerSection);
-    const lessonId = layerSection.lessons[0]?.lesson.id;
+    const target = buildLayerCheckoutTarget(layerSection);
 
-    if (!productId || !lessonId) {
+    if (!target) {
       setCheckoutNotice('Esta capa no tiene producto asociado todavía.');
       setCheckoutNoticeTone('error');
       return;
@@ -384,47 +431,14 @@ export const useUserSettingsLogic = () => {
     setIsStartingCheckoutByLayerId(layerSection.layer.id);
 
     try {
-      const supabase = getSupabaseClient();
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-
-      if (sessionError || !accessToken) {
-        throw new Error('Necesitas iniciar sesión para continuar con el pago.');
-      }
-
-      const backendUrl = getBackendUrl();
-      const response = await fetch(`${backendUrl}/payments/checkout-session`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          productId,
-          successUrl: buildSettingsReturnUrl('success', productId, lessonId),
-          cancelUrl: buildSettingsReturnUrl('cancel', productId, lessonId),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await getResponseErrorMessage(response));
-      }
-
-      const payload = await response.json() as CheckoutSessionResponse;
-
-      if (!payload.checkoutUrl || typeof payload.checkoutUrl !== 'string') {
-        throw new Error('La respuesta de checkout no incluyó una URL válida.');
-      }
-
-      window.location.assign(payload.checkoutUrl);
+      await startCheckout(target);
     } catch (checkoutError) {
       const message = checkoutError instanceof Error ? checkoutError.message : 'Error inesperado iniciando checkout.';
       setCheckoutNotice(message);
       setCheckoutNoticeTone('error');
       setIsStartingCheckoutByLayerId(null);
     }
-  }, []);
+  }, [startCheckout]);
 
   const handleStartMethodCheckout = useCallback(async () => {
     if (!methodCheckoutTarget) {
@@ -438,47 +452,14 @@ export const useUserSettingsLogic = () => {
     setIsStartingMethodCheckout(true);
 
     try {
-      const supabase = getSupabaseClient();
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-
-      if (sessionError || !accessToken) {
-        throw new Error('Necesitas iniciar sesión para continuar con el pago.');
-      }
-
-      const backendUrl = getBackendUrl();
-      const response = await fetch(`${backendUrl}/payments/checkout-session`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          productId,
-          successUrl: buildSettingsReturnUrl('success', productId, lessonId),
-          cancelUrl: buildSettingsReturnUrl('cancel', productId, lessonId),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await getResponseErrorMessage(response));
-      }
-
-      const payload = await response.json() as CheckoutSessionResponse;
-
-      if (!payload.checkoutUrl || typeof payload.checkoutUrl !== 'string') {
-        throw new Error('La respuesta de checkout no incluyó una URL válida.');
-      }
-
-      window.location.assign(payload.checkoutUrl);
+      await startCheckout({ productId, lessonId });
     } catch (checkoutError) {
       const message = checkoutError instanceof Error ? checkoutError.message : 'Error inesperado iniciando checkout.';
       setCheckoutNotice(message);
       setCheckoutNoticeTone('error');
       setIsStartingMethodCheckout(false);
     }
-  }, [methodCheckoutTarget]);
+  }, [methodCheckoutTarget, startCheckout]);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -495,10 +476,10 @@ export const useUserSettingsLogic = () => {
       return;
     }
 
-    const lessonId = parsePositiveInteger(query.get('lessonId'));
+    const checkoutLessonId = parsePositiveInteger(query.get('lessonId'));
     const productId = parsePositiveInteger(query.get('productId'));
 
-    if (!lessonId || !productId || !authUser) {
+    if (!checkoutLessonId || !productId) {
       setCheckoutNotice('Pago recibido. Estamos actualizando tus accesos.');
       setCheckoutNoticeTone('info');
       setRoadmapRefreshKey((current) => current + 1);
@@ -506,61 +487,48 @@ export const useUserSettingsLogic = () => {
       return;
     }
 
-    let isCancelled = false;
-    let timerId: number | null = null;
+    if (!authUser) {
+      setCheckoutNotice('Pago recibido. Estamos actualizando tus accesos.');
+      setCheckoutNoticeTone('info');
+      return;
+    }
+
+    const controller = new AbortController();
 
     const waitForAccessActivation = async () => {
       setCheckoutNotice('Pago recibido, activando acceso...');
       setCheckoutNoticeTone('info');
 
-      const backendUrl = getBackendUrl();
-      const userId = getAccessUserId(authUser);
+      const candidateLessonIds = getCandidateLessonIdsForProduct(productId, checkoutLessonId);
 
-      for (let attempt = 0; attempt < ACCESS_POLL_MAX_ATTEMPTS; attempt += 1) {
-        try {
-          const accessResponse = await fetch(
-            `${backendUrl}/access/lessons/${lessonId}?userId=${encodeURIComponent(userId)}`,
-            {
-              headers: {
-                Accept: 'application/json',
-              },
-            },
-          );
-
-          if (accessResponse.ok) {
-            const payload = normalizeLessonAccess(await accessResponse.json());
-            const hasEntitlement = Boolean(payload?.entitlement) || payload?.reason === 'entitled';
-            const matchesProduct = hasEntitlement && payload?.products.some((product) => product.id === productId);
-
-            if (hasEntitlement || matchesProduct) {
-              if (isCancelled) {
-                return;
-              }
-
-              setCheckoutNotice('Acceso activado correctamente.');
-              setCheckoutNoticeTone('success');
-              setRoadmapRefreshKey((current) => current + 1);
-              navigate('/dashboard/ajustes', { replace: true });
-              return;
-            }
-          }
-        } catch {
-          // Reintentamos en el siguiente ciclo.
-        }
-
-        await new Promise<void>((resolve) => {
-          timerId = window.setTimeout(() => {
-            timerId = null;
-            resolve();
-          }, ACCESS_POLL_INTERVAL_MS);
+      try {
+        const matchedLessonId = await pollLessonAccessActivation({
+          user: authUser,
+          productId,
+          candidateLessonIds,
+          signal: controller.signal,
         });
 
-        if (isCancelled) {
+        if (matchedLessonId !== null) {
+          setCheckoutNotice('Acceso activado correctamente.');
+          setCheckoutNoticeTone('success');
+          setRoadmapRefreshKey((current) => current + 1);
+          navigate('/dashboard/mapa', {
+            replace: true,
+            state: {
+              focusLessonId: matchedLessonId,
+              forceRoadmapRefresh: true,
+            },
+          });
+          return;
+        }
+      } catch {
+        if (controller.signal.aborted) {
           return;
         }
       }
 
-      if (isCancelled) {
+      if (controller.signal.aborted) {
         return;
       }
 
@@ -573,12 +541,9 @@ export const useUserSettingsLogic = () => {
     void waitForAccessActivation();
 
     return () => {
-      isCancelled = true;
-      if (timerId !== null) {
-        window.clearTimeout(timerId);
-      }
+      controller.abort();
     };
-  }, [authUser, location.search, navigate]);
+  }, [authUser, getCandidateLessonIdsForProduct, location.search, navigate]);
 
   useEffect(() => {
     if (handledSettingsLocationKeyRef.current === location.key) {
@@ -654,7 +619,7 @@ export const useUserSettingsLogic = () => {
     handleStartMethodCheckout,
     methodPlanDescription: methodPricingPlan?.description ?? 'Aprende la metodolog�a completa en un solo plan.',
     handleOpenLayerBillingCards,
-    layerPlanPrice: `${layerPricingPlan?.price ?? '1'} €`,
+    layerPlanPrice,
     layerPlanDescription: layerPricingPlan?.description ?? 'Desbloquea contenido por niveles y compra solo lo que necesites.',
     handleBackToBillingSelector,
     isLayerCardsEntering,
@@ -666,4 +631,3 @@ export const useUserSettingsLogic = () => {
     isMobileViewport,
   };
 };
-

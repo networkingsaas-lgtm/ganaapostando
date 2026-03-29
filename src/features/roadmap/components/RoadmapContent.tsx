@@ -10,7 +10,7 @@ import {
   Trophy,
   Wrench,
 } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PageReveal from '../../../shared/components/PageReveal';
 import ScrollReveal from '../../../shared/components/ScrollReveal';
 import HeaderTitle from '../../../shared/components/HeaderTitle';
@@ -27,6 +27,8 @@ interface Props {
   error: string | null;
   layers: LayerSection[];
   isFullscreen?: boolean;
+  focusLessonId?: number;
+  focusLayerId?: number;
 }
 
 type ActiveBubble =
@@ -78,6 +80,8 @@ export default function RoadmapContent({
   error,
   layers,
   isFullscreen = false,
+  focusLessonId,
+  focusLayerId,
 }: Props) {
   const [activeBubble, setActiveBubble] = useState<ActiveBubble | null>(null);
   const [revealedLayerIds, setRevealedLayerIds] = useState<Record<number, true>>({});
@@ -154,7 +158,7 @@ export default function RoadmapContent({
     });
   }, []);
 
-  const recomputeBubblePosition = useCallback(() => {
+  const measureBubblePosition = useCallback(() => {
     const bubbleElement = activeBubbleRef.current;
 
     if (!bubbleElement) {
@@ -180,15 +184,15 @@ export default function RoadmapContent({
     setBubbleArrowOffset(arrowOffset);
   }, []);
 
-  useLayoutEffect(() => {
-    if (!activeBubble) {
-      setBubbleShift(0);
-      setBubbleArrowOffset(0);
-      return;
-    }
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      measureBubblePosition();
+    });
 
-    recomputeBubblePosition();
-  }, [activeBubble, recomputeBubblePosition]);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [activeBubble, measureBubblePosition]);
 
   useEffect(() => {
     if (!activeBubble) {
@@ -196,33 +200,43 @@ export default function RoadmapContent({
     }
 
     const handleResize = () => {
-      recomputeBubblePosition();
+      measureBubblePosition();
     };
 
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [activeBubble, recomputeBubblePosition]);
+  }, [activeBubble, measureBubblePosition]);
 
   useEffect(() => {
     if (isLoading || error || hasAutoScrolledToUnlockedLayerRef.current || layers.length === 0) {
       return;
     }
 
+    const focusedLayerFromRoute =
+      typeof focusLayerId === 'number'
+        ? layers.find((section) => section.layer.id === focusLayerId)
+        : null;
+    const focusedLayerFromLesson =
+      typeof focusLessonId === 'number'
+        ? layers.find((section) =>
+          section.lessons.some((lessonNode) => lessonNode.lesson.id === focusLessonId),
+        )
+        : null;
     const unlockedLayerWithEntitlement = layers.find((section) =>
       section.lessons.some((lessonNode) => Boolean(lessonNode.access?.entitlement)),
     );
     const fallbackUnlockedLayer = layers.find((section) =>
       section.lessons.some((lessonNode) => lessonNode.isUnlocked),
     );
-    const targetLayer = unlockedLayerWithEntitlement ?? fallbackUnlockedLayer;
+    const targetLayer =
+      focusedLayerFromRoute
+      ?? focusedLayerFromLesson
+      ?? unlockedLayerWithEntitlement
+      ?? fallbackUnlockedLayer;
 
-    if (!targetLayer) {
-      return;
-    }
-
-    const targetElement = layerSectionRefs.current[targetLayer.layer.id];
+    const targetElement = targetLayer ? layerSectionRefs.current[targetLayer.layer.id] : null;
 
     if (!targetElement) {
       return;
@@ -230,7 +244,7 @@ export default function RoadmapContent({
 
     hasAutoScrolledToUnlockedLayerRef.current = true;
     targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [isLoading, error, layers]);
+  }, [error, focusLayerId, focusLessonId, isLoading, layers]);
 
   return (
     <PageReveal

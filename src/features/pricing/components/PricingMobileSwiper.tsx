@@ -25,31 +25,64 @@ export default function PricingMobileSwiper({
   const isHorizontalSwipeRef = useRef(false);
   const previousBodyOverflowRef = useRef<string | null>(null);
   const previousHtmlOverflowRef = useRef<string | null>(null);
+  const previousBodyPositionRef = useRef<string | null>(null);
+  const previousBodyTopRef = useRef<string | null>(null);
+  const previousBodyWidthRef = useRef<string | null>(null);
+  const lockedScrollYRef = useRef(0);
 
   const minSwipeDistance = 50;
   const swipeLockThreshold = 12;
   const isLightTheme = theme === 'light';
+  const visibleCardIndex = plans.length === 0 ? 0 : Math.min(activeCard, plans.length - 1);
 
   const unlockVerticalScroll = () => {
-    if (previousBodyOverflowRef.current === null || previousHtmlOverflowRef.current === null) {
+    if (
+      previousBodyOverflowRef.current === null
+      || previousHtmlOverflowRef.current === null
+      || previousBodyPositionRef.current === null
+      || previousBodyTopRef.current === null
+      || previousBodyWidthRef.current === null
+    ) {
       return;
     }
 
     document.body.style.overflow = previousBodyOverflowRef.current;
     document.documentElement.style.overflow = previousHtmlOverflowRef.current;
+    document.body.style.position = previousBodyPositionRef.current;
+    document.body.style.top = previousBodyTopRef.current;
+    document.body.style.width = previousBodyWidthRef.current;
+    window.scrollTo({ top: lockedScrollYRef.current, behavior: 'auto' });
+
     previousBodyOverflowRef.current = null;
     previousHtmlOverflowRef.current = null;
+    previousBodyPositionRef.current = null;
+    previousBodyTopRef.current = null;
+    previousBodyWidthRef.current = null;
   };
 
   const lockVerticalScroll = () => {
-    if (previousBodyOverflowRef.current !== null || previousHtmlOverflowRef.current !== null) {
+    if (
+      previousBodyOverflowRef.current !== null
+      || previousHtmlOverflowRef.current !== null
+      || previousBodyPositionRef.current !== null
+      || previousBodyTopRef.current !== null
+      || previousBodyWidthRef.current !== null
+    ) {
       return;
     }
 
+    lockedScrollYRef.current = window.scrollY || window.pageYOffset || 0;
     previousBodyOverflowRef.current = document.body.style.overflow;
     previousHtmlOverflowRef.current = document.documentElement.style.overflow;
+    previousBodyPositionRef.current = document.body.style.position;
+    previousBodyTopRef.current = document.body.style.top;
+    previousBodyWidthRef.current = document.body.style.width;
+
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${lockedScrollYRef.current}px`;
+    document.body.style.width = '100%';
   };
 
   const resetTouchTracking = () => {
@@ -85,6 +118,7 @@ export default function PricingMobileSwiper({
       if (movedFarEnough && Math.abs(deltaX) > Math.abs(deltaY)) {
         isHorizontalSwipeRef.current = true;
         lockVerticalScroll();
+        event.preventDefault();
       }
     }
 
@@ -117,10 +151,6 @@ export default function PricingMobileSwiper({
   };
 
   useEffect(() => {
-    setActiveCard(0);
-  }, [plans.length]);
-
-  useEffect(() => {
     return () => {
       unlockVerticalScroll();
     };
@@ -151,7 +181,7 @@ export default function PricingMobileSwiper({
       <div className="md:hidden overflow-hidden pt-3 sm:pt-4 pb-2">
         <div
           className="flex transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${activeCard * 100}%)` }}
+          style={{ transform: `translateX(-${visibleCardIndex * 100}%)` }}
           onTouchStart={(e) => onTouchStart(e.targetTouches[0].clientX, e.targetTouches[0].clientY)}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
@@ -196,14 +226,20 @@ export default function PricingMobileSwiper({
                         <span className={`text-3xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
                           €***
                         </span>
-                        <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}> / pago único</span>
+                        <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}>
+                          {' '}
+                          / {plan.name.includes('por capas') ? 'desde' : 'pago único'}
+                        </span>
                       </>
                     ) : /^\d+(?:[.,]\d+)?$/.test(plan.price) ? (
                       <>
                         <span className={`text-3xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
                           €{plan.price}
                         </span>
-                        <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}> / pago único</span>
+                        <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}>
+                          {' '}
+                          / {plan.name.includes('por capas') ? 'desde' : 'pago único'}
+                        </span>
                       </>
                     ) : (
                       <span className={`text-2xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
@@ -218,7 +254,15 @@ export default function PricingMobileSwiper({
 
                   {plan.content && (
                     <button
-                      onClick={() => onOpenPlan({ name: plan.name, content: plan.content! })}
+                      onClick={() => {
+                        const { content } = plan;
+
+                        if (!content) {
+                          return;
+                        }
+
+                        onOpenPlan({ name: plan.name, content });
+                      }}
                       className={`w-full mb-4 py-2.5 rounded-lg border-2 font-semibold text-sm transition-all ${
                         plan.highlighted
                           ? 'border-white text-white hover:bg-white/10'

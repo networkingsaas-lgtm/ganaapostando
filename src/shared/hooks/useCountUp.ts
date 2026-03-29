@@ -5,7 +5,6 @@ export function useCountUp(target: number, duration = 1800, enabled = true) {
 
   useEffect(() => {
     if (!enabled) {
-      setValue(0);
       return;
     }
 
@@ -23,5 +22,5 @@ export function useCountUp(target: number, duration = 1800, enabled = true) {
     return () => cancelAnimationFrame(rafId);
   }, [target, duration, enabled]);
 
-  return value;
+  return enabled ? value : 0;
 }

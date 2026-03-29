@@ -28,7 +28,7 @@ export default function EstudianteSection() {
             <span className="font-bold tracking-tight">Aprende</span> nuestra metodología para <span className="font-bold tracking-tight">generar ingresos</span>.
           </p>
           <p className="text-base text-slate-600 sm:text-xl" style={{ fontFamily: "'Sora', sans-serif" }}>
-            Datos reales que reflejan el impacto de una metodología basada en análisis, disciplina y toma de decisiones con criterio.
+            Una formación paso a paso para entender el mercado, reducir errores y construir un criterio rentable.
           </p>
         </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { Suspense, lazy, useEffect, useState, type ReactElement } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import HeroSection from './features/home/sections/HeroSection';
 import AprenderSection from './features/home/sections/AprenderSection';
@@ -6,12 +6,16 @@ import MetodoStatsSection from './features/home/sections/MetodoStatsSection';
 import EstudianteSection from './features/home/sections/EstudianteSection';
 import PricingSection from './features/home/sections/PricingSection';
 import CTASection from './features/home/sections/CTASection';
-import Resultados from './pages/Resultados';
-import PortalLayout from './pages/PortalLayout';
-import Registro from './pages/Registro';
 import RouteSwiper from './shared/components/RouteSwiper';
-import { logoutFromSupabase } from './lib/auth';
-import { getSupabaseClient } from './lib/supabase';
+import {
+  getCurrentSession,
+  signOutFromSession,
+  watchAuthSession,
+} from './api/services/sessionService';
+
+const Resultados = lazy(() => import('./pages/Resultados'));
+const PortalLayout = lazy(() => import('./pages/PortalLayout'));
+const Registro = lazy(() => import('./pages/Registro'));
 
 type AppRoute = '/' | '/resultados' | '/dashboard' | '/registro';
 
@@ -20,6 +24,11 @@ interface RouteState {
 }
 
 const REGISTRO_SWIPE_DURATION_MS = 520;
+const routeFallback = (
+  <div className="flex min-h-screen w-full items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)]">
+    <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-300 border-t-slate-600" />
+  </div>
+);
 
 const getAppRoute = (pathname: string): AppRoute | null => {
   if (pathname === '/' || pathname === '/resultados' || pathname === '/registro') {
@@ -120,9 +129,7 @@ function App() {
   const currentRoute: AppRoute = resolvedRoute ?? '/';
 
   const syncAuthFromSession = async () => {
-    const supabase = getSupabaseClient();
-    const { data } = await supabase.auth.getSession();
-    const hasSession = Boolean(data.session);
+    const hasSession = Boolean(await getCurrentSession());
     setIsAuthenticated(hasSession);
     setAuthReady(true);
     return hasSession;
@@ -130,7 +137,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await logoutFromSupabase();
+      await signOutFromSession();
     } catch (error) {
       console.error('No se pudo cerrar sesion en Supabase.', error);
     } finally {
@@ -139,26 +146,13 @@ function App() {
   };
 
   useEffect(() => {
-    const supabase = getSupabaseClient();
-    let isMounted = true;
-
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) {
-        return;
-      }
-
-      setIsAuthenticated(Boolean(data.session));
-      setAuthReady(true);
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const unsubscribe = watchAuthSession((session) => {
       setIsAuthenticated(Boolean(session));
       setAuthReady(true);
     });
 
     return () => {
-      isMounted = false;
-      data.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
@@ -183,74 +177,76 @@ function App() {
         },
       ]}
       renderRoute={(sceneRoute, goTo) => (
-        <Routes location={sceneRoute === currentRoute ? location : sceneRoute}>
-          <Route
-            path="/"
-            element={
-              <LandingPage
-                flashButtonsKey={flashButtonsKey}
-                onLoginSuccess={() => {
-                  void syncAuthFromSession().then((hasSession) => {
-                    if (hasSession) {
-                      navigate('/dashboard/mapa');
-                    }
-                  });
-                }}
-                onVerResultados={() => navigate('/resultados')}
-                onRegistrarse={() => goTo('/registro')}
-              />
-            }
-          />
-          <Route
-            path="/resultados"
-            element={
-              <Resultados
-                onVolver={() => navigate('/')}
-                onVerPricing={() => {
-                  setFlashButtonsKey((currentKey) => currentKey + 1);
-                  navigate('/', { state: { scrollToPricing: true } satisfies RouteState });
-                }}
-              />
-            }
-          />
-          <Route
-            path="/dashboard/*"
-            element={(
-              <ProtectedRoute authReady={authReady} isAuthenticated={isAuthenticated}>
-                <PortalLayout onVolver={() => { void handleLogout(); }} />
-              </ProtectedRoute>
-            )}
-          />
-          <Route
-            path="/mapa/*"
-            element={(
-              <Navigate
-                to={{
-                  pathname: getDashboardAliasPath(location.pathname),
-                  search: location.search,
-                  hash: location.hash,
-                }}
-                replace
-              />
-            )}
-          />
-          <Route
-            path="/registro"
-            element={(
-              <Registro
-                onVolver={() => goTo('/')}
-                onRegistroExitoso={() => {
-                  void syncAuthFromSession().then((hasSession) => {
-                    if (hasSession) {
-                      navigate('/dashboard/ajustes');
-                    }
-                  });
-                }}
-              />
-            )}
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={routeFallback}>
+          <Routes location={sceneRoute === currentRoute ? location : sceneRoute}>
+            <Route
+              path="/"
+              element={
+                <LandingPage
+                  flashButtonsKey={flashButtonsKey}
+                  onLoginSuccess={() => {
+                    void syncAuthFromSession().then((hasSession) => {
+                      if (hasSession) {
+                        navigate('/dashboard/mapa');
+                      }
+                    });
+                  }}
+                  onVerResultados={() => navigate('/resultados')}
+                  onRegistrarse={() => goTo('/registro')}
+                />
+              }
+            />
+            <Route
+              path="/resultados"
+              element={
+                <Resultados
+                  onVolver={() => navigate('/')}
+                  onVerPricing={() => {
+                    setFlashButtonsKey((currentKey) => currentKey + 1);
+                    navigate('/', { state: { scrollToPricing: true } satisfies RouteState });
+                  }}
+                />
+              }
+            />
+            <Route
+              path="/dashboard/*"
+              element={(
+                <ProtectedRoute authReady={authReady} isAuthenticated={isAuthenticated}>
+                  <PortalLayout onVolver={() => { void handleLogout(); }} />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/mapa/*"
+              element={(
+                <Navigate
+                  to={{
+                    pathname: getDashboardAliasPath(location.pathname),
+                    search: location.search,
+                    hash: location.hash,
+                  }}
+                  replace
+                />
+              )}
+            />
+            <Route
+              path="/registro"
+              element={(
+                <Registro
+                  onVolver={() => goTo('/')}
+                  onRegistroExitoso={() => {
+                    void syncAuthFromSession().then((hasSession) => {
+                      if (hasSession) {
+                        navigate('/dashboard/ajustes');
+                      }
+                    });
+                  }}
+                />
+              )}
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       )}
     />
   );

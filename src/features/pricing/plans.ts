@@ -5,10 +5,10 @@ export const pricingPlans: PricingPlan[] = [
   {
     name: 'El Método, por capas',
     icon: FileSpreadsheet,
-    price: '1',
+    price: '13.25',
     description: 'Es el mismo contenido base de El Método, pero desbloqueado por niveles de pago progresivo y no lineal.',
     features: [
-      'Empiezas por 1 EUR y accedes al primer nivel del contenido',
+      'Empiezas por 13.25 EUR y accedes al primer nivel del contenido',
       'Cada nivel desbloquea una parte nueva del mismo método principal',
       'No es lineal: puedes elegir que información desbloquear primero',
       'Pagas sólo los bloques que quieras abrir en cada momento',
@@ -23,7 +23,7 @@ export const pricingPlans: PricingPlan[] = [
   {
     name: 'El Método.',
     icon: BookOpen,
-    price: '197',
+    price: '97',
     description: 'Aprende nuestra metodología de inversión en apuestas deportivas.',
     features: [
       '+ Todo lo incluido en El Método por capas',

@@ -1,7 +1,12 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { loginWithSupabase, registerWithBackend } from '../lib/auth';
-import { getSupabaseClient } from '../lib/supabase';
+import {
+  getAutoLoginErrorMessage,
+  getRegisterErrorMessage,
+  loginWithEmailPassword,
+  registerUser,
+  signInWithOAuth,
+} from '../api/services/authService';
 
 interface Props {
   onVolver: () => void;
@@ -23,54 +28,6 @@ const INITIAL_FORM: RegisterFormState = {
 };
 
 const OAUTH_REDIRECT_PATH = '/dashboard/ajustes';
-
-const OAUTH_PROVIDER_CONFIG: Record<
-  SocialProvider,
-  { label: string; scopes: string; queryParams?: Record<string, string> }
-> = {
-  google: {
-    label: 'Google',
-    scopes: 'email profile',
-    queryParams: {
-      access_type: 'offline',
-      prompt: 'consent',
-    },
-  },
-  facebook: {
-    label: 'Facebook',
-    scopes: 'email public_profile',
-  },
-  apple: {
-    label: 'Apple',
-    scopes: 'name email',
-  },
-};
-
-const getFriendlyRegisterError = (error: unknown) => {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return 'No se pudo completar el registro.';
-};
-
-const getFriendlyAutoLoginError = (error: unknown) => {
-  if (!(error instanceof Error) || !error.message.trim()) {
-    return 'Registro completado, pero no se pudo iniciar sesion automaticamente.';
-  }
-
-  const normalizedMessage = error.message.toLowerCase();
-
-  if (normalizedMessage.includes('invalid login credentials')) {
-    return 'Registro completado, pero no se pudo iniciar sesion automaticamente.';
-  }
-
-  if (normalizedMessage.includes('email not confirmed')) {
-    return 'Registro completado. Confirma tu correo para iniciar sesion.';
-  }
-
-  return `Registro completado, pero no se pudo iniciar sesion automaticamente: ${error.message}`;
-};
 
 function GoogleIcon() {
   return (
@@ -134,26 +91,11 @@ export default function Registro({ onVolver, onRegistroExitoso }: Props) {
     setSocialSubmitting(provider);
 
     try {
-      const supabase = getSupabaseClient();
-      const providerConfig = OAUTH_PROVIDER_CONFIG[provider];
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}${OAUTH_REDIRECT_PATH}`,
-          scopes: providerConfig.scopes,
-          queryParams: providerConfig.queryParams,
-        },
+      await signInWithOAuth(provider, {
+        redirectTo: `${window.location.origin}${OAUTH_REDIRECT_PATH}`,
       });
-
-      if (error) {
-        throw error;
-      }
     } catch (error) {
-      const message =
-        error instanceof Error && error.message.trim()
-          ? error.message
-          : `No se pudo continuar con ${OAUTH_PROVIDER_CONFIG[provider].label}.`;
-      setErrorMessage(message);
+      setErrorMessage(error instanceof Error ? error.message : 'No se pudo continuar.');
     } finally {
       setSocialSubmitting(null);
     }
@@ -181,19 +123,19 @@ export default function Registro({ onVolver, onRegistroExitoso }: Props) {
     setIsSubmitting(true);
 
     try {
-      const response = await registerWithBackend({ username, email, password });
+      const response = await registerUser({ username, email, password });
       setSuccessMessage(response.message || 'Usuario registrado correctamente.');
 
       try {
-        await loginWithSupabase(email, password);
+        await loginWithEmailPassword(email, password);
         setForm(INITIAL_FORM);
         setShowPassword(false);
         onRegistroExitoso();
       } catch (loginError) {
-        setErrorMessage(getFriendlyAutoLoginError(loginError));
+        setErrorMessage(getAutoLoginErrorMessage(loginError));
       }
     } catch (error) {
-      setErrorMessage(getFriendlyRegisterError(error));
+      setErrorMessage(getRegisterErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }

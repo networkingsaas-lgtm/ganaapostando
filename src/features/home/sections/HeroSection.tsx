@@ -1,7 +1,10 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { loginWithSupabase } from '../../../lib/auth';
-import { getSupabaseClient } from '../../../lib/supabase';
+import {
+  getLoginErrorMessage,
+  loginWithEmailPassword,
+  signInWithOAuth,
+} from '../../../api/services/authService';
 import AppModal from '../../../shared/components/AppModal';
 import PageReveal from '../../../shared/components/PageReveal';
 import CasasCarrusel from '../components/CasasCarrusel';
@@ -14,24 +17,6 @@ interface Props {
 
 const LOGIN_CLOSE_MS = 200;
 const OAUTH_REDIRECT_PATH = '/dashboard/ajustes';
-
-const getFriendlyLoginError = (error: unknown) => {
-  if (!(error instanceof Error) || !error.message.trim()) {
-    return 'No se pudo iniciar sesión.';
-  }
-
-  const normalizedMessage = error.message.toLowerCase();
-
-  if (normalizedMessage.includes('invalid login credentials')) {
-    return 'Correo o contraseña incorrectos.';
-  }
-
-  if (normalizedMessage.includes('email not confirmed')) {
-    return 'Confirma tu correo antes de iniciar sesión.';
-  }
-
-  return error.message;
-};
 
 export default function HeroSection({ onLoginSuccess, onVerResultados, onRegistrarse }: Props) {
   const [loginOpen, setLoginOpen] = useState(false);
@@ -93,7 +78,7 @@ export default function HeroSection({ onLoginSuccess, onVerResultados, onRegistr
     setLoginSubmitting(true);
 
     try {
-      await loginWithSupabase(loginEmail, loginPassword);
+      await loginWithEmailPassword(loginEmail, loginPassword);
 
       if (closeTimeoutRef.current !== null) {
         window.clearTimeout(closeTimeoutRef.current);
@@ -105,7 +90,7 @@ export default function HeroSection({ onLoginSuccess, onVerResultados, onRegistr
       setShowLoginPassword(false);
       onLoginSuccess();
     } catch (error) {
-      setLoginError(getFriendlyLoginError(error));
+      setLoginError(getLoginErrorMessage(error));
     } finally {
       setLoginSubmitting(false);
     }
@@ -116,24 +101,11 @@ export default function HeroSection({ onLoginSuccess, onVerResultados, onRegistr
     setGoogleSubmitting(true);
 
     try {
-      const supabase = getSupabaseClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}${OAUTH_REDIRECT_PATH}`,
-          scopes: 'email profile',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
+      await signInWithOAuth('google', {
+        redirectTo: `${window.location.origin}${OAUTH_REDIRECT_PATH}`,
       });
-
-      if (error) {
-        throw error;
-      }
     } catch (error) {
-      setLoginError(getFriendlyLoginError(error));
+      setLoginError(getLoginErrorMessage(error));
       setGoogleSubmitting(false);
     }
   };
@@ -172,7 +144,10 @@ export default function HeroSection({ onLoginSuccess, onVerResultados, onRegistr
         <div className="relative z-10 mx-auto max-w-7xl pt-28 sm:pt-32">
           <div className="mx-auto max-w-5xl space-y-5 text-center sm:space-y-6">
             <PageReveal delay={100}>
-              <p className="mx-auto mb-4 w-full text-center text-5xl font-normal tracking-tight sm:mb-20 sm:text-8xl" style={{ fontFamily: "'Sora', sans-serif" }}>
+              <p
+                className="mx-auto mb-4 w-full text-center text-5xl font-normal tracking-tight sm:mb-20 sm:text-8xl"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
                 <span className="rebel-underline-lg font-bold"> El Método.</span>
               </p>
             </PageReveal>

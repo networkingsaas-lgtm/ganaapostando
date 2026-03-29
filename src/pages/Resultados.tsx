@@ -10,12 +10,12 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import type { TooltipContentProps, TooltipValueType } from 'recharts';
 
 import type { Usuario } from '../features/resultados/types';
 import { usuarios } from '../features/resultados/data';
 
 type EjeX = 'tiempo' | 'apuestas';
-
 interface Props {
   onVolver: () => void;
   onVerPricing: () => void;
@@ -38,16 +38,28 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
     diferencia: i === 0 ? null : b - seleccionado.beneficioValues[i - 1],
   }));
 
-  const renderTooltipContent = (props: any) => {
-    const { active, payload, label } = props;
+  const renderTooltipContent = ({
+    active,
+    payload,
+    label,
+  }: TooltipContentProps<TooltipValueType, string | number>) => {
     if (!active || !payload || payload.length === 0) return null;
 
     const point = payload[0];
     const current = typeof point.value === 'number' ? point.value : Number(point.value);
-    const diff = point.payload.diferencia;
+    const diff =
+      typeof point.payload === 'object'
+      && point.payload !== null
+      && 'diferencia' in point.payload
+      && typeof point.payload.diferencia === 'number'
+        ? point.payload.diferencia
+        : point.payload?.diferencia === null
+          ? null
+          : null;
     const diffText = diff === null ? '--' : `${diff >= 0 ? '+' : '-'}${formatMoney(Math.abs(diff))}`;
     const diffColor = diff === null ? '#6b7280' : diff >= 0 ? '#16a34a' : '#dc2626';
-    const labelText = ejeX === 'tiempo' ? `Mes: ${label}` : `Apuestas: ${label}`;
+    const safeLabel = typeof label === 'string' || typeof label === 'number' ? label : '';
+    const labelText = ejeX === 'tiempo' ? `Mes: ${safeLabel}` : `Apuestas: ${safeLabel}`;
 
     return (
       <div
@@ -91,12 +103,12 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
             <ArrowLeft className="w-4 h-4" />
             Volver
           </button>
-          
-          <p className="mb-8 text-4xl font-normal sm:text-6xl tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
+
+          <p className="mb-5 text-4xl font-normal sm:text-6xl tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
             Resultados <span className="font-bold tracking-tight">verificados</span>.
           </p>
           <p className="body-text text-gray-300 max-w-2xl">
-            Evolución real de beneficios de nuestros alumnos aplicando <span className="rebel-underline"> El Método.</span>
+            Evolución real de beneficios de nuestros alumnos aplicando <span className="rebel-underline">El Método.</span>
           </p>
         </div>
       </PageReveal>

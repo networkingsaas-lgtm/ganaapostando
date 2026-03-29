@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface Props {
@@ -16,19 +16,19 @@ export default function PageReveal({
   delay = 30,
   instant = false,
 }: Props) {
-  const [visible, setVisible] = useState(instant);
+  const [delayedVisible, setDelayedVisible] = useState(instant);
 
   useEffect(() => {
-    if (instant) {
-      setVisible(true);
+    if (instant || delayedVisible) {
       return;
     }
 
-    const t = setTimeout(() => setVisible(true), delay);
+    const t = setTimeout(() => setDelayedVisible(true), delay);
     return () => clearTimeout(t);
-  }, [delay, instant]);
+  }, [delay, delayedVisible, instant]);
 
   const hidden = direction === 'up' ? 'opacity-0 translate-y-8' : 'opacity-0 -translate-y-8';
+  const visible = instant || delayedVisible;
 
   return (
     <div className={`transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : hidden} ${className}`}>

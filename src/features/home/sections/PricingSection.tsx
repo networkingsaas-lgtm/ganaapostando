@@ -3,9 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PricingMobileSwiper from '../../pricing/components/PricingMobileSwiper';
 import { pricingPlans } from '../../pricing/plans';
+import { openStripeCheckout } from '../../../lib/stripe';
 import ScrollReveal from '../../../shared/components/ScrollReveal';
-
-const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/test_14AcN5fLB0ftgjF6OrcIE00';
 
 interface Props {
   flashButtonsKey?: number;
@@ -25,16 +24,20 @@ export default function PricingSection({
 
   useEffect(() => {
     if (flashButtonsKey === 0) return;
-    setAnimClass('');
+    const t0 = setTimeout(() => setAnimClass(''), 0);
     const t1 = setTimeout(() => setAnimClass('btn-pulse-gold'), 10);
     const t2 = setTimeout(() => setAnimClass(''), 3500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return () => { clearTimeout(t0); clearTimeout(t1); clearTimeout(t2); };
   }, [flashButtonsKey]);
   const plans = pricingPlans;
 
   const handleStartNow = () => {
     if (startMode === 'stripe') {
-      window.open(STRIPE_CHECKOUT_URL, '_blank', 'noopener,noreferrer');
+      if (openStripeCheckout()) {
+        return;
+      }
+
+      navigate('/registro');
       return;
     }
 
@@ -113,14 +116,20 @@ export default function PricingSection({
                       <span className={`text-3xl sm:text-5xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
                         €***
                       </span>
-                      <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}> / pago único</span>
+                      <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}>
+                        {' '}
+                        / {plan.name.includes('por capas') ? 'desde' : 'pago único'}
+                      </span>
                     </>
                   ) : /^\d+(?:[.,]\d+)?$/.test(plan.price) ? (
                     <>
                       <span className={`text-3xl sm:text-5xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
                         €{plan.price}
                       </span>
-                      <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}> / pago único</span>
+                      <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}>
+                        {' '}
+                        / {plan.name.includes('por capas') ? 'desde' : 'pago único'}
+                      </span>
                     </>
                   ) : (
                     <span className={`text-2xl sm:text-3xl font-bold ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
