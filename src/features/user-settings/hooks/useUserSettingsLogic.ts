@@ -1,14 +1,13 @@
-import type { User } from '@supabase/supabase-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createCheckoutSession } from '../../../api/services/paymentsService';
-import { getCurrentUser } from '../../../api/services/sessionService';
 import { pollLessonAccessActivation } from '../../../api/services/userAccessService';
 import { getAuthenticatedUserLabel } from '../../portal-shell/utils';
-import { useRoadmapData } from '../../roadmap/hooks/useRoadmapData';
+import { useSharedRoadmapData } from '../../roadmap/context/RoadmapDataContext';
 import type { LayerSection } from '../../roadmap/types';
 import { formatPriceEur } from '../../roadmap/utils';
 import { pricingPlans } from '../../pricing/plans';
+import { useAuthSession } from '../../../shared/auth/AuthSessionContext';
 
 interface SettingsRouteState {
   focusLayerId?: number;
@@ -18,6 +17,9 @@ interface SettingsRouteState {
 const BILLING_SCROLL_DURATION_MS = 1300;
 const BILLING_SELECTOR_TRANSITION_MS = 320;
 const BILLING_PANEL_ANIMATION_CLASS = 'transition-all duration-300';
+
+const lessonHasPaidAccess = (reason: string | null | undefined, canAccess: boolean | undefined) =>
+  reason === 'entitled' || Boolean(canAccess);
 
 interface CheckoutTarget {
   productId: number;
@@ -168,10 +170,8 @@ const getBillingDeckLayout = () => {
 export const useUserSettingsLogic = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [authUser, setAuthUser] = useState<User | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
-  const [userError, setUserError] = useState<string | null>(null);
-  const [roadmapRefreshKey, setRoadmapRefreshKey] = useState(0);
+  const { authUser, authReady } = useAuthSession();
+  const isUserLoading = !authReady;
   const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
   const [checkoutNoticeTone, setCheckoutNoticeTone] = useState<'info' | 'success' | 'error'>('info');
   const [isStartingCheckoutByLayerId, setIsStartingCheckoutByLayerId] = useState<number | null>(null);
@@ -188,49 +188,10 @@ export const useUserSettingsLogic = () => {
   const {
     isLoading: isCoursesLoading,
     layers,
-  } = useRoadmapData(roadmapRefreshKey);
+    refreshRoadmap,
+  } = useSharedRoadmapData();
   const handledSettingsLocationKeyRef = useRef<string | null>(null);
   const billingSelectorTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadAuthenticatedUser = async () => {
-      setIsUserLoading(true);
-      setUserError(null);
-
-      try {
-        const user = await getCurrentUser();
-
-        if (!user) {
-          throw new Error('No se pudo cargar el usuario autenticado.');
-        }
-
-        if (!isMounted) {
-          return;
-        }
-
-        setAuthUser(user);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        const message = error instanceof Error ? error.message : 'Error inesperado.';
-        setUserError(message);
-      } finally {
-        if (isMounted) {
-          setIsUserLoading(false);
-        }
-      }
-    };
-
-    void loadAuthenticatedUser();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     const syncBillingDeckLayout = () => {
@@ -259,7 +220,7 @@ export const useUserSettingsLogic = () => {
     () =>
       layers.filter((section) =>
         section.lessons.some(
-          (lessonNode) => lessonNode.reason === 'entitled' || Boolean(lessonNode.access?.entitlement),
+          (lessonNode) => lessonHasPaidAccess(lessonNode.reason, lessonNode.access?.canAccess),
         ),
       ).length,
     [layers],
@@ -300,7 +261,7 @@ export const useUserSettingsLogic = () => {
         section.lessons.some(
           (lessonNode) =>
             lessonNode.products.some((product) => product.id === 6)
-            && (lessonNode.reason === 'entitled' || Boolean(lessonNode.access?.entitlement)),
+            && lessonHasPaidAccess(lessonNode.reason, lessonNode.access?.canAccess),
         ),
       ),
     [layers],
@@ -482,7 +443,7 @@ export const useUserSettingsLogic = () => {
     if (!checkoutLessonId || !productId) {
       setCheckoutNotice('Pago recibido. Estamos actualizando tus accesos.');
       setCheckoutNoticeTone('info');
-      setRoadmapRefreshKey((current) => current + 1);
+      refreshRoadmap();
       navigate('/dashboard/ajustes', { replace: true });
       return;
     }
@@ -512,7 +473,7 @@ export const useUserSettingsLogic = () => {
         if (matchedLessonId !== null) {
           setCheckoutNotice('Acceso activado correctamente.');
           setCheckoutNoticeTone('success');
-          setRoadmapRefreshKey((current) => current + 1);
+          refreshRoadmap();
           navigate('/dashboard/mapa', {
             replace: true,
             state: {
@@ -534,7 +495,7 @@ export const useUserSettingsLogic = () => {
 
       setCheckoutNotice('El pago se registró, pero el acceso tarda más de lo normal. Recarga en unos segundos.');
       setCheckoutNoticeTone('error');
-      setRoadmapRefreshKey((current) => current + 1);
+      refreshRoadmap();
       navigate('/dashboard/ajustes', { replace: true });
     };
 
@@ -543,7 +504,7 @@ export const useUserSettingsLogic = () => {
     return () => {
       controller.abort();
     };
-  }, [authUser, getCandidateLessonIdsForProduct, location.search, navigate]);
+  }, [authUser, getCandidateLessonIdsForProduct, location.search, navigate, refreshRoadmap]);
 
   useEffect(() => {
     if (handledSettingsLocationKeyRef.current === location.key) {
@@ -597,7 +558,7 @@ export const useUserSettingsLogic = () => {
 
   return {
     isUserLoading,
-    userError,
+    userError: !authReady ? null : authUser ? null : 'No se pudo cargar el usuario autenticado.',
     isPremium,
     isCoursesLoading,
     userLabel,

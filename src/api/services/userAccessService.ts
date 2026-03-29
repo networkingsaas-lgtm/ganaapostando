@@ -14,7 +14,7 @@ const isProductActivationConfirmed = (productId: number, payload: LessonAccessRe
   }
 
   const hasTargetEntitlement = payload.entitlement?.product_id === productId;
-  const hasEntitledState = Boolean(payload.entitlement) || payload.reason === 'entitled';
+  const hasEntitledState = payload.canAccess || payload.reason === 'entitled';
   const includesTargetProduct = payload.products.some((product) => product.id === productId);
 
   return hasTargetEntitlement || (hasEntitledState && includesTargetProduct);

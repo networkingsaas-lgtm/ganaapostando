@@ -62,6 +62,10 @@ export const fetchLessonVideoAccess = async (
     }
 
     if (error instanceof ApiError) {
+      if (error.status === 429) {
+        throw error;
+      }
+
       return null;
     }
 

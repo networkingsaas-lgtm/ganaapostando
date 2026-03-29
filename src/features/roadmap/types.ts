@@ -6,8 +6,6 @@ export interface CatalogLesson {
   summary: string | null;
   position: number;
   is_preview: boolean;
-  video_provider: string | null;
-  video_asset_id: string | null;
   created_at: string;
 }
 

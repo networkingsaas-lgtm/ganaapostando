@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string;
   readonly VITE_SUPABASE_KEY: string;
   readonly VITE_MAP_LEVELS_ENDPOINT?: string;
+  readonly VITE_CHECKOUT_RETURN_URL_ORIGINS?: string;
   readonly VITE_STRIPE_PUBLIC_KEY: string;
 }
 

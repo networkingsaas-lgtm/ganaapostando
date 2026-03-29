@@ -9,5 +9,9 @@ const getClientEnv = (name: keyof ImportMetaEnv) => {
 };
 
 export const getRequiredClientEnv = (name: keyof ImportMetaEnv) => getClientEnv(name);
+export const getOptionalClientEnv = (name: keyof ImportMetaEnv) => {
+  const value = import.meta.env[name];
+  return value && value.trim() ? value.trim() : null;
+};
 
 export const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');

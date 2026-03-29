@@ -9,10 +9,9 @@ import CTASection from './features/home/sections/CTASection';
 import Resultados from './pages/Resultados';
 import RouteSwiper from './shared/components/RouteSwiper';
 import {
-  getCurrentSession,
   signOutFromSession,
-  watchAuthSession,
 } from './api/services/sessionService';
+import { AuthSessionProvider, useAuthSession } from './shared/auth/AuthSessionContext';
 
 const preloadRegistroPage = () => import('./pages/Registro');
 
@@ -122,20 +121,20 @@ function ProtectedRoute({
 }
 
 function App() {
+  return (
+    <AuthSessionProvider>
+      <AppRoutes />
+    </AuthSessionProvider>
+  );
+}
+
+function AppRoutes() {
   const [flashButtonsKey, setFlashButtonsKey] = useState(0);
-  const [authReady, setAuthReady] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { authReady, isAuthenticated } = useAuthSession();
   const resolvedRoute = getAppRoute(location.pathname);
   const currentRoute: AppRoute = resolvedRoute ?? '/';
-
-  const syncAuthFromSession = async () => {
-    const hasSession = Boolean(await getCurrentSession());
-    setIsAuthenticated(hasSession);
-    setAuthReady(true);
-    return hasSession;
-  };
 
   const handleLogout = async () => {
     try {
@@ -146,17 +145,6 @@ function App() {
       navigate('/');
     }
   };
-
-  useEffect(() => {
-    const unsubscribe = watchAuthSession((session) => {
-      setIsAuthenticated(Boolean(session));
-      setAuthReady(true);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   useEffect(() => {
     void preloadRegistroPage();
@@ -191,11 +179,7 @@ function App() {
                 <LandingPage
                   flashButtonsKey={flashButtonsKey}
                   onLoginSuccess={() => {
-                    void syncAuthFromSession().then((hasSession) => {
-                      if (hasSession) {
-                        navigate('/dashboard/mapa');
-                      }
-                    });
+                    navigate('/dashboard/mapa');
                   }}
                   onVerResultados={() => navigate('/resultados')}
                   onRegistrarse={() => goTo('/registro')}
@@ -241,11 +225,7 @@ function App() {
                 <Registro
                   onVolver={() => goTo('/')}
                   onRegistroExitoso={() => {
-                    void syncAuthFromSession().then((hasSession) => {
-                      if (hasSession) {
-                        navigate('/dashboard/ajustes');
-                      }
-                    });
+                    navigate('/dashboard/ajustes');
                   }}
                 />
               )}

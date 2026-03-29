@@ -1,4 +1,4 @@
-import { postJson } from '../core/backendClient';
+import { getFriendlyRequestErrorMessage, postJson } from '../core/backendClient';
 import { getSupabaseApiClient } from '../core/supabaseClient';
 
 export interface RegisterPayload {
@@ -20,6 +20,13 @@ export interface RegisterResponse {
     trigger?: string;
     usersTableLinked?: boolean;
   };
+  session?: {
+    access_token?: string;
+    refresh_token?: string;
+    expires_at?: number;
+    expires_in?: number;
+    token_type?: string;
+  } | null;
 }
 
 export type AuthProvider = 'google' | 'facebook' | 'apple';
@@ -50,25 +57,17 @@ const OAUTH_PROVIDER_CONFIG: Record<
   },
 };
 
-const normalizeErrorMessage = (error: unknown, fallbackMessage: string) => {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
+const normalizeErrorMessage = (error: unknown, fallbackMessage: string) =>
+  getFriendlyRequestErrorMessage(error, fallbackMessage);
 
-  return fallbackMessage;
-};
-
-export const getRegisterErrorMessage = (error: unknown) => {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return 'No se pudo completar el registro.';
-};
+export const getRegisterErrorMessage = (error: unknown) =>
+  getFriendlyRequestErrorMessage(error, 'No se pudo completar el registro.');
 
 export const getLoginErrorMessage = (error: unknown) => {
+  const fallbackMessage = 'No se pudo iniciar sesión.';
+
   if (!(error instanceof Error) || !error.message.trim()) {
-    return 'No se pudo iniciar sesión.';
+    return fallbackMessage;
   }
 
   const normalizedMessage = error.message.toLowerCase();
@@ -81,26 +80,32 @@ export const getLoginErrorMessage = (error: unknown) => {
     return 'Confirma tu correo antes de iniciar sesión.';
   }
 
-  return error.message;
+  return getFriendlyRequestErrorMessage(error, fallbackMessage);
 };
 
 export const getAutoLoginErrorMessage = (error: unknown) => {
+  const fallbackMessage = 'Registro completado, pero no se pudo iniciar sesión automáticamente.';
+
   if (!(error instanceof Error) || !error.message.trim()) {
-    return 'Registro completado, pero no se pudo iniciar sesión automáticamente.';
+    return fallbackMessage;
   }
 
   const normalizedMessage = error.message.toLowerCase();
 
   if (normalizedMessage.includes('invalid login credentials')) {
-    return 'Registro completado, pero no se pudo iniciar sesión automáticamente.';
+    return fallbackMessage;
   }
 
   if (normalizedMessage.includes('email not confirmed')) {
     return 'Registro completado. Confirma tu correo para iniciar sesión.';
   }
 
-  return `Registro completado, pero no se pudo iniciar sesión automáticamente: ${error.message}`;
+  return `Registro completado, pero no se pudo iniciar sesión automáticamente: ${getFriendlyRequestErrorMessage(error, fallbackMessage)}`;
 };
+
+export const registerRequiresEmailConfirmation = (response: RegisterResponse) =>
+  response.session === null
+  || (!response.session && response.user.emailConfirmedAt == null);
 
 export const loginWithEmailPassword = async (email: string, password: string) => {
   const supabase = getSupabaseApiClient();

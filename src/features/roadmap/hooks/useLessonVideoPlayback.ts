@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { getFriendlyRequestErrorMessage } from '../../../api/core/backendClient';
 import { fetchLessonVideoAccess } from '../services/lessonVideoService';
 import type { LessonVideoAccess, LessonVideoAccessResponse } from '../types';
 
@@ -155,7 +156,10 @@ export const useLessonVideoPlayback = (lessonId: number | null): LessonVideoPlay
         isLoading: false,
         video: null,
         reason: null,
-        errorMessage: error instanceof Error ? error.message : 'No se pudo cargar el video de la leccion.',
+        errorMessage: getFriendlyRequestErrorMessage(
+          error,
+          'No se pudo cargar el video de la lección.',
+        ),
       });
     });
 

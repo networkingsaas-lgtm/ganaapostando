@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { getBackendApiBaseUrl } from '../../../api/core/backendClient';
+import {
+  getBackendApiBaseUrl,
+  getFriendlyRequestErrorMessage,
+} from '../../../api/core/backendClient';
 import {
   ROADMAP_CACHE_TTL_MS,
   ROADMAP_CACHE_VERSION,
@@ -208,7 +211,7 @@ export const useRoadmapData = (refreshKey = 0) => {
           return;
         }
 
-        const message = fetchError instanceof Error ? fetchError.message : 'Error inesperado.';
+        const message = getFriendlyRequestErrorMessage(fetchError, 'Error inesperado.');
         setState((current) => ({
           ...current,
           layers: [],

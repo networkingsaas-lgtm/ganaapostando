@@ -58,6 +58,9 @@ const TOOLS_PROMO_GLOBAL_LESSON_NUMBER = 9;
 const VALUE_PROMO_GLOBAL_LESSON_NUMBER = 11;
 const PRO_PROMO_GLOBAL_LESSON_NUMBER = 15;
 
+const lessonHasPaidAccess = (reason: string | null | undefined, canAccess: boolean | undefined) =>
+  reason === 'entitled' || Boolean(canAccess);
+
 const getLayerHeight = (totalNodes: number) =>
   Math.max(340, NODE_CURVE_TOP + Math.max(totalNodes - 1, 0) * NODE_STEP_Y + 140);
 
@@ -357,8 +360,8 @@ export default function RoadmapContent({
           section.lessons.some((lessonNode) => lessonNode.lesson.id === focusLessonId),
         )
         : null;
-    const unlockedLayerWithEntitlement = layers.find((section) =>
-      section.lessons.some((lessonNode) => Boolean(lessonNode.access?.entitlement)),
+    const unlockedLayerWithAccess = layers.find((section) =>
+      section.lessons.some((lessonNode) => lessonHasPaidAccess(lessonNode.reason, lessonNode.access?.canAccess)),
     );
     const fallbackUnlockedLayer = layers.find((section) =>
       section.lessons.some((lessonNode) => lessonNode.isUnlocked),
@@ -366,7 +369,7 @@ export default function RoadmapContent({
     const targetLayer =
       focusedLayerFromRoute
       ?? focusedLayerFromLesson
-      ?? unlockedLayerWithEntitlement
+      ?? unlockedLayerWithAccess
       ?? fallbackUnlockedLayer;
 
     const targetElement = targetLayer ? layerSectionRefs.current[targetLayer.layer.id] : null;
@@ -477,10 +480,10 @@ export default function RoadmapContent({
               const isProPromoOnRight = proPromoLeftPercent <= 34;
               const theme = getRoadmapLayerTheme(sectionIndex, layers.length);
               const isLayerRevealed = Boolean(revealedLayerIds[section.layer.id]);
-              const hasLayerEntitlement = section.lessons.some((lessonNode) =>
-                Boolean(lessonNode.access?.entitlement),
+              const hasLayerAccess = section.lessons.some((lessonNode) =>
+                lessonHasPaidAccess(lessonNode.reason, lessonNode.access?.canAccess),
               );
-              const isLayerLockedByEntitlement = !hasLayerEntitlement;
+              const isLayerLockedByEntitlement = !hasLayerAccess;
               const headerBackground = isLayerLockedByEntitlement
                 ? 'linear-gradient(180deg,rgba(248,250,252,0.98) 0%,rgba(237,242,248,0.96) 100%)'
                 : 'linear-gradient(180deg,rgba(255,255,255,0.98) 0%,rgba(243,247,255,0.96) 100%)';
@@ -508,7 +511,7 @@ export default function RoadmapContent({
                 activeBubble?.type === 'purchase' && activeBubble.layerId === section.layer.id;
               const purchaseError = purchaseErrorByLayerId[section.layer.id] ?? null;
               const isStartingCheckout = isStartingCheckoutByLayerId === section.layer.id;
-              const isSkipDisabledByEntitlement = hasLayerEntitlement;
+              const isSkipDisabledByEntitlement = hasLayerAccess;
               const shouldShowExcelPromo = shouldShowExcelPromoBase && !isExcelPromoDismissed;
               const shouldShowMoneyPromo = shouldShowMoneyPromoBase && !isMoneyPromoDismissed;
               const shouldShowToolsPromo = shouldShowToolsPromoBase && !isToolsPromoDismissed;

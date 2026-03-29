@@ -4,6 +4,7 @@ import {
   getAutoLoginErrorMessage,
   getRegisterErrorMessage,
   loginWithEmailPassword,
+  registerRequiresEmailConfirmation,
   registerUser,
   signInWithOAuth,
 } from '../api/services/authService';
@@ -124,7 +125,19 @@ export default function Registro({ onVolver, onRegistroExitoso }: Props) {
 
     try {
       const response = await registerUser({ username, email, password });
-      setSuccessMessage(response.message || 'Usuario registrado correctamente.');
+      const requiresEmailConfirmation = registerRequiresEmailConfirmation(response);
+
+      setSuccessMessage(
+        requiresEmailConfirmation
+          ? 'Cuenta creada. Revisa tu correo para confirmar la cuenta antes de iniciar sesión.'
+          : response.message || 'Usuario registrado correctamente.',
+      );
+
+      if (requiresEmailConfirmation) {
+        setForm(INITIAL_FORM);
+        setShowPassword(false);
+        return;
+      }
 
       try {
         await loginWithEmailPassword(email, password);

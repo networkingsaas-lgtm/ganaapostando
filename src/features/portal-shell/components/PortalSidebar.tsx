@@ -1,7 +1,10 @@
 import { ArrowLeft, PanelLeft } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { SIDEBAR_ITEMS, SIDEBAR_WIDTH_CLASS } from '../constants';
-import { useRoadmapData } from '../../roadmap/hooks/useRoadmapData';
+import { useSharedRoadmapData } from '../../roadmap/context/RoadmapDataContext';
+
+const lessonHasPaidAccess = (reason: string | null | undefined, canAccess: boolean | undefined) =>
+  reason === 'entitled' || Boolean(canAccess);
 
 interface Props {
   sidebarOpen: boolean;
@@ -22,7 +25,7 @@ export default function PortalSidebar({
   onNavigate,
   onOpenLogout,
 }: Props) {
-  const { isLoading: isCoursesLoading, layers } = useRoadmapData();
+  const { isLoading: isCoursesLoading, layers } = useSharedRoadmapData();
   const mobileSidebarItems = useMemo(() => {
     const mapItem = SIDEBAR_ITEMS.find((item) => item.path === 'mapa');
     if (!mapItem) {
@@ -43,7 +46,7 @@ export default function PortalSidebar({
     () =>
       layers.filter((section) =>
         section.lessons.some(
-          (lessonNode) => lessonNode.reason === 'entitled' || Boolean(lessonNode.access?.entitlement),
+          (lessonNode) => lessonHasPaidAccess(lessonNode.reason, lessonNode.access?.canAccess),
         ),
       ).length,
     [layers],

@@ -45,6 +45,7 @@ Variables consumidas por la app:
 - `VITE_SUPABASE_URL`: URL del proyecto Supabase.
 - `VITE_SUPABASE_KEY`: clave publica de Supabase para el cliente.
 - `VITE_STRIPE_PUBLIC_KEY`: clave publica de Stripe para cargar `@stripe/stripe-js`.
+- `VITE_CHECKOUT_RETURN_URL_ORIGINS` (opcional): lista separada por comas con los origenes permitidos para `successUrl` y `cancelUrl` del checkout. Conviene alinearla con `CHECKOUT_RETURN_URL_ORIGINS` en backend para fallar antes en frontend si el origen no esta permitido.
 
 Variables opcionales para Vite, solo para desarrollo/preview:
 
@@ -62,9 +63,14 @@ Notas:
 - El build sale en `dist/` y es estatico.
 - `netlify.toml` ya incluye la regla SPA para que las rutas del cliente resuelvan en `index.html`.
 - En despliegue hay que definir las mismas variables de entorno que en local.
+- El origen publico del frontend debe estar incluido en `CORS_ALLOWED_ORIGINS` del backend; si no, las peticiones pueden fallar con errores de red/CORS.
+- Las URLs de retorno de Stripe deben pertenecer a un origen permitido por `CHECKOUT_RETURN_URL_ORIGINS`.
 - Si despliegas en otro proveedor, asegurate de mantener una rewrite/fallback hacia `index.html` para que funcionen las rutas internas.
 
 ## Limitaciones Actuales
 
 - Este repo no incluye backend; la autenticacion, el mapa de contenidos y los pagos dependen de servicios externos.
+- `/catalog` solo devuelve contenido publicado; el frontend no debe depender de `includeUnpublished=true` ni de metadatos publicos de video en los listados.
+- La reproduccion de video depende del flujo firmado del backend tras comprobar acceso; no del catalogo publico.
+- `/auth/register` puede requerir confirmacion por email y no garantiza login inmediato.
 - El CTA de precios sigue apuntando a un checkout de Stripe de prueba hasta que se sustituya por el flujo de produccion.

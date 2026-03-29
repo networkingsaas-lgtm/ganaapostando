@@ -199,6 +199,10 @@ export const getReasonLabel = (reason: string) => {
     return 'Autenticacion requerida';
   }
 
+  if (normalizedReason === 'rate_limited') {
+    return 'Demasiadas solicitudes';
+  }
+
   return reason;
 };
 
