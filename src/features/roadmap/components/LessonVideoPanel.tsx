@@ -1,6 +1,5 @@
-import { CircleAlert, LoaderCircle, RefreshCw, Video } from 'lucide-react';
+import { CircleAlert, LoaderCircle, Lock, RefreshCw } from 'lucide-react';
 import type { LessonVideoPlaybackResult } from '../hooks/useLessonVideoPlayback';
-import { getReasonLabel } from '../utils';
 
 interface Props {
   lessonTitle: string;
@@ -30,11 +29,11 @@ const formatDateTime = (value: string | null) => {
 export default function LessonVideoPanel({ lessonTitle, playbackState, accessReason }: Props) {
   const playbackUrl = playbackState.video?.playbackUrl ?? null;
   const hasPlayableVideo = Boolean(playbackUrl);
-  const reasonLabel = playbackState.reason
-    ? getReasonLabel(playbackState.reason)
-    : accessReason
-      ? getReasonLabel(accessReason)
-      : null;
+  const resolvedReason = playbackState.reason ?? accessReason ?? null;
+  const hasAccess =
+    resolvedReason === 'entitled'
+    || resolvedReason === 'preview'
+    || resolvedReason === null;
   const showLoadingSkeleton = playbackState.isLoading && !hasPlayableVideo;
   const showRefreshingOverlay = playbackState.isLoading && hasPlayableVideo;
 
@@ -46,14 +45,16 @@ export default function LessonVideoPanel({ lessonTitle, playbackState, accessRea
           <p className="mt-1 truncate text-lg font-black text-white">{lessonTitle}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={playbackState.retry}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/14 bg-white/8 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/14"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Reintentar
-        </button>
+        {hasAccess && (
+          <button
+            type="button"
+            onClick={playbackState.retry}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/14 bg-white/8 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/14"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Reintentar
+          </button>
+        )}
       </div>
 
       {showLoadingSkeleton && (
@@ -65,28 +66,39 @@ export default function LessonVideoPanel({ lessonTitle, playbackState, accessRea
         </div>
       )}
 
-      {!playbackState.isLoading && playbackState.errorMessage && !hasPlayableVideo && (
+      {!playbackState.isLoading && playbackState.errorMessage && !hasPlayableVideo && !hasAccess && (
         <div className="flex min-h-[280px] items-center justify-center bg-[linear-gradient(180deg,#0b1220_0%,#050816_100%)] px-4 text-center">
-          <div className="max-w-[26rem]">
-            <CircleAlert className="mx-auto h-10 w-10 text-rose-300" />
-            <p className="mt-4 text-lg font-bold text-white">{playbackState.errorMessage}</p>
-            {reasonLabel && (
-              <p className="mt-2 text-sm font-medium text-slate-300">Motivo: {reasonLabel}</p>
-            )}
+          <div className="max-w-[28rem]">
+            <Lock className="mx-auto h-16 w-16 text-slate-200" />
+            <p className="mt-4 text-xl font-bold text-white">No tienes acceso</p>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-              Si el enlace caduca o la sesion cambia, vuelve a abrir la leccion para pedir uno nuevo.
+              Compra esta capa para ver el video.
             </p>
           </div>
         </div>
       )}
 
-      {!playbackState.isLoading && !playbackState.errorMessage && reasonLabel && !hasPlayableVideo && (
+      {!playbackState.isLoading && playbackState.errorMessage && !hasPlayableVideo && hasAccess && (
+        <div className="flex min-h-[280px] items-center justify-center bg-[linear-gradient(180deg,#0b1220_0%,#050816_100%)] px-4 text-center">
+          <div className="max-w-[26rem]">
+            <CircleAlert className="mx-auto h-10 w-10 text-rose-300" />
+            <p className="mt-4 text-lg font-bold text-white">
+              No se ha podido cargar el video.
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Vuelve a cargar el video porque el token se ha caducado.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!playbackState.isLoading && !playbackState.errorMessage && !hasAccess && !hasPlayableVideo && (
         <div className="flex min-h-[280px] items-center justify-center bg-[linear-gradient(180deg,#0b1220_0%,#050816_100%)] px-4 text-center">
           <div className="max-w-[28rem]">
-            <Video className="mx-auto h-10 w-10 text-cyan-200" />
-            <p className="mt-4 text-lg font-bold text-white">{reasonLabel}</p>
+            <Lock className="mx-auto h-16 w-16 text-slate-200" />
+            <p className="mt-4 text-xl font-bold text-white">No tienes acceso</p>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-              El backend no ha devuelto una URL reproducible para esta leccion.
+              Esta leccion esta bloqueada para tu cuenta en este momento.
             </p>
           </div>
         </div>

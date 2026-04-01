@@ -175,7 +175,7 @@ export default function Registro({ onVolver, onRegistroExitoso }: Props) {
                 Volver al inicio
               </button>
               <p className="text-lg font-semibold text-white">
-                <span className="rebel-underline">El Metodo.</span>
+                <span className="rebel-underline">El Método.</span>
               </p>
             </div>
 

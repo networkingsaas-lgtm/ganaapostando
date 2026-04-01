@@ -211,16 +211,18 @@ const UserSettingsView: FC<Props> = ({
           }`}
         >
           <div
-            className="relative mx-auto h-[40rem] sm:h-[44rem]"
-            style={{ width: `${billingDeckLayout.width}px` }}
+            className={`relative h-[31rem] sm:h-[34rem] ${
+              isMobileViewport ? '' : 'mx-auto w-full max-w-[46rem]'
+            }`}
+            style={isMobileViewport ? { width: '34rem' } : undefined}
           >
             <div className="grid h-full grid-cols-2 items-stretch gap-5">
-              <div className="relative flex h-full flex-col rounded-2xl border-4 border-gray-200 bg-white p-6 shadow-[0_10px_22px_rgba(17,24,39,0.10)] sm:p-8">
-                <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+              <div className="relative flex h-full flex-col rounded-2xl border-4 border-gray-200 bg-white p-5 shadow-[0_10px_22px_rgba(17,24,39,0.10)] sm:p-6">
+                <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">
                   <span className="rebel-underline">El Método</span>.
                 </h3>
-                <div className="mt-5">
-                  <span className="text-4xl font-bold text-gray-900 sm:text-5xl">{methodProductPriceLabel}</span>
+                <div className="mt-4">
+                  <span className="text-3xl font-bold text-gray-900 sm:text-4xl">{methodProductPriceLabel}</span>
                   <span className="ml-1 text-sm text-gray-600">/ pago único</span>
                 </div>
                 <button
@@ -233,10 +235,10 @@ const UserSettingsView: FC<Props> = ({
                 >
                   {isMethodPurchased ? 'Plan comprado' : isStartingMethodCheckout ? 'Redirigiendo...' : 'Comprar plan'}
                 </button>
-                <p className="mt-4 text-base text-gray-600">
+                <p className="mt-3 text-sm text-gray-600 sm:text-base">
                   {methodPlanDescription}
                 </p>
-                <ul className="mt-5 space-y-2 text-sm text-gray-700">
+                <ul className="mt-4 space-y-2 text-sm text-gray-700">
                   <li>Acceso completo al programa principal.</li>
                   <li>Sin desbloqueos por etapas.</li>
                   <li>Ideal si quieres todo el contenido desde el inicio.</li>
@@ -246,22 +248,22 @@ const UserSettingsView: FC<Props> = ({
               <button
                 type="button"
                 onClick={handleOpenLayerBillingCards}
-                className="relative flex h-full flex-col rounded-2xl border-4 border-blue-300 bg-[linear-gradient(180deg,#ffffff_0%,#f2f7ff_100%)] p-6 text-left shadow-[0_12px_24px_rgba(37,99,235,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(37,99,235,0.24)] sm:p-8"
+                className="relative flex h-full flex-col rounded-2xl border-4 border-blue-300 bg-[linear-gradient(180deg,#ffffff_0%,#f2f7ff_100%)] p-5 text-left shadow-[0_12px_24px_rgba(37,99,235,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(37,99,235,0.24)] sm:p-6"
               >
-                <h3 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">
                   <span className="rebel-underline">El Método</span>, por capas
                 </h3>
-                <div className="mt-5">
-                  <span className="text-4xl font-bold text-gray-900 sm:text-5xl">{layerPlanPrice}</span>
+                <div className="mt-4">
+                  <span className="text-3xl font-bold text-gray-900 sm:text-4xl">{layerPlanPrice}</span>
                   <span className="ml-1 text-sm text-gray-600">/ desde</span>
                 </div>
                 <span className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-blue-500 py-3 text-sm font-semibold text-white">
                   Elegir por capas
                 </span>
-                <p className="mt-4 text-base text-gray-600">
+                <p className="mt-3 text-sm text-gray-600 sm:text-base">
                   {layerPlanDescription}
                 </p>
-                <ul className="mt-5 space-y-2 text-sm text-gray-700">
+                <ul className="mt-4 space-y-2 text-sm text-gray-700">
                   <li>Empiezas con un coste bajo.</li>
                   <li>Compras capa a capa según tu avance.</li>
                   <li>Control total del gasto por módulo.</li>
@@ -400,7 +402,7 @@ const UserSettingsView: FC<Props> = ({
                 <button
                   type="button"
                   aria-label="Deseleccionar card activa"
-                  className="absolute inset-0 z-40 bg-white/10 backdrop-blur-[2px]"
+                  className="absolute inset-0 z-40 bg-white/30 backdrop-blur-[10px]"
                   onClick={(event) => {
                     event.stopPropagation();
                     setActiveBillingCard(null);

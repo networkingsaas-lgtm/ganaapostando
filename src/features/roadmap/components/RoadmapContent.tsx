@@ -9,8 +9,10 @@ import {
   SkipForward,
   Trophy,
   Wrench,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { createCheckoutSession } from '../../../api/services/paymentsService';
 import PageReveal from '../../../shared/components/PageReveal';
 import ScrollReveal from '../../../shared/components/ScrollReveal';
@@ -43,6 +45,16 @@ interface CheckoutTarget {
   lessonId: number;
 }
 
+interface LessonModalSnapshot {
+  lessonId: number;
+  sectionIndex: number;
+  lessonIndex: number;
+  title: string;
+  summary: string | null;
+  accessReason: string | null;
+  playbackState: ReturnType<typeof useLessonVideoPlayback>;
+}
+
 const CURVE_LEFT_X = 14;
 const CURVE_RIGHT_X = 86;
 const NODE_CURVE_TOP = 72;
@@ -57,6 +69,7 @@ const MONEY_PROMO_GLOBAL_LESSON_NUMBER = 5;
 const TOOLS_PROMO_GLOBAL_LESSON_NUMBER = 9;
 const VALUE_PROMO_GLOBAL_LESSON_NUMBER = 11;
 const PRO_PROMO_GLOBAL_LESSON_NUMBER = 15;
+const LESSON_MODAL_CLOSE_MS = 200;
 
 const lessonHasPaidAccess = (reason: string | null | undefined, canAccess: boolean | undefined) =>
   reason === 'entitled' || Boolean(canAccess);
@@ -85,6 +98,9 @@ const getNodeLeftPercent = (layerIndex: number, lessonIndex: number, lessonsCoun
 const getNodeTop = (nodeIndex: number) => NODE_CURVE_TOP + nodeIndex * NODE_STEP_Y;
 const getRevealDelay = (revealIndex: number) =>
   `${NODE_REVEAL_BASE_DELAY_MS + revealIndex * NODE_REVEAL_STEP_MS}ms`;
+
+const getLayerHighlightStyle = (highlight: string): CSSProperties =>
+  ({ '--hero-startup-bg-highlight': highlight } as CSSProperties);
 
 const getLayerProductId = (layerSection: LayerSection) => {
   const mappedProductId = layerSection.mappedProducts[0]?.id;
@@ -140,17 +156,19 @@ export default function RoadmapContent({
 }: Props) {
   const [activeBubble, setActiveBubble] = useState<ActiveBubble | null>(null);
   const [revealedLayerIds, setRevealedLayerIds] = useState<Record<number, true>>({});
-  const [isExcelPromoDismissed, setIsExcelPromoDismissed] = useState(false);
-  const [isMoneyPromoDismissed, setIsMoneyPromoDismissed] = useState(false);
-  const [isToolsPromoDismissed, setIsToolsPromoDismissed] = useState(false);
-  const [isValuePromoDismissed, setIsValuePromoDismissed] = useState(false);
-  const [isProPromoDismissed, setIsProPromoDismissed] = useState(false);
+  const isExcelPromoDismissed = false;
+  const isMoneyPromoDismissed = false;
+  const isToolsPromoDismissed = false;
+  const isValuePromoDismissed = false;
+  const isProPromoDismissed = false;
   const [flippedLayerId, setFlippedLayerId] = useState<number | null>(null);
   const [bubbleShift, setBubbleShift] = useState(0);
   const [bubbleArrowOffset, setBubbleArrowOffset] = useState(0);
   const [isStartingCheckoutByLayerId, setIsStartingCheckoutByLayerId] = useState<number | null>(null);
   const [purchaseErrorByLayerId, setPurchaseErrorByLayerId] = useState<Record<number, string>>({});
+  const [isLessonModalClosing, setIsLessonModalClosing] = useState(false);
   const hasAutoScrolledToUnlockedLayerRef = useRef(false);
+  const lessonModalTimeoutRef = useRef<number | null>(null);
   const contentBoundsRef = useRef<HTMLDivElement | null>(null);
   const activeBubbleRef = useRef<HTMLDivElement | null>(null);
   const layerSectionRefs = useRef<Record<number, HTMLElement | null>>({});
@@ -178,13 +196,81 @@ export default function RoadmapContent({
 
     return activeSection.lessons.find((lessonNode) => lessonNode.lesson.id === activeBubble.lessonId) ?? null;
   }, [activeBubble, layers]);
+  const activeLessonContext = useMemo(() => {
+    if (activeBubble?.type !== 'lesson') {
+      return null;
+    }
+
+    const activeSectionIndex = layers.findIndex((section) => section.layer.id === activeBubble.layerId);
+
+    if (activeSectionIndex === -1) {
+      return null;
+    }
+
+    const activeSection = layers[activeSectionIndex];
+    const lessonIndex = activeSection.lessons.findIndex(
+      (lessonNode) => lessonNode.lesson.id === activeBubble.lessonId,
+    );
+
+    if (lessonIndex === -1) {
+      return null;
+    }
+
+    return {
+      section: activeSection,
+      sectionIndex: activeSectionIndex,
+      lessonIndex,
+      lessonNode: activeSection.lessons[lessonIndex],
+      previousLesson: lessonIndex > 0 ? activeSection.lessons[lessonIndex - 1] : null,
+      nextLesson:
+        lessonIndex < activeSection.lessons.length - 1
+          ? activeSection.lessons[lessonIndex + 1]
+          : null,
+    };
+  }, [activeBubble, layers]);
   const lessonVideoPlayback = useLessonVideoPlayback(activeLessonNode?.lesson.id ?? null);
 
+  const currentLessonModalSnapshot = useMemo<LessonModalSnapshot | null>(() => {
+    if (!activeLessonContext) {
+      return null;
+    }
+
+    return {
+      lessonId: activeLessonContext.lessonNode.lesson.id,
+      sectionIndex: activeLessonContext.sectionIndex,
+      lessonIndex: activeLessonContext.lessonIndex,
+      title: activeLessonContext.lessonNode.lesson.title,
+      summary: activeLessonContext.lessonNode.lesson.summary,
+      accessReason: activeLessonContext.lessonNode.access?.reason ?? null,
+      playbackState: lessonVideoPlayback,
+    };
+  }, [activeLessonContext, lessonVideoPlayback]);
+
   const handleCloseBubble = useCallback(() => {
+    if (activeBubble?.type === 'lesson') {
+      if (lessonModalTimeoutRef.current !== null) {
+        window.clearTimeout(lessonModalTimeoutRef.current);
+      }
+
+      setIsLessonModalClosing(true);
+      lessonModalTimeoutRef.current = window.setTimeout(() => {
+        setActiveBubble((currentBubble) => (currentBubble?.type === 'lesson' ? null : currentBubble));
+        setIsLessonModalClosing(false);
+        lessonModalTimeoutRef.current = null;
+      }, LESSON_MODAL_CLOSE_MS);
+      return;
+    }
+
     setActiveBubble(null);
-  }, []);
+  }, [activeBubble]);
 
   const handleToggleLessonBubble = useCallback((layerId: number, lessonId: number) => {
+    if (lessonModalTimeoutRef.current !== null) {
+      window.clearTimeout(lessonModalTimeoutRef.current);
+      lessonModalTimeoutRef.current = null;
+    }
+
+    setIsLessonModalClosing(false);
     setActiveBubble((currentBubble) => {
       if (
         currentBubble &&
@@ -331,6 +417,14 @@ export default function RoadmapContent({
   ]);
 
   useEffect(() => {
+    return () => {
+      if (lessonModalTimeoutRef.current !== null) {
+        window.clearTimeout(lessonModalTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!activeBubble) {
       return;
     }
@@ -383,41 +477,42 @@ export default function RoadmapContent({
   }, [error, focusLayerId, focusLessonId, isLoading, layers]);
 
   return (
-    <PageReveal
-      className={isFullscreen ? 'min-h-screen w-full' : 'min-h-full w-full'}
-      instant
-    >
-      <div
-        ref={contentBoundsRef}
-        className="w-full bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] text-slate-900"
-        onClick={handleCloseBubble}
+    <div className="relative min-h-full w-full">
+      <PageReveal
+        className={isFullscreen ? 'min-h-screen w-full' : 'min-h-full w-full'}
+        instant
       >
-        {isLoading && (
-          <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] text-center text-slate-900">
-            <p className="-translate-y-10 text-5xl font-bold tracking-tight sm:text-7xl">
-              <span className="rebel-underline">{'El M\u00E9todo'}</span>
-            </p>
-            <LoaderCircle className="mt-6 h-10 w-10 animate-spin text-slate-500" />
-            
-          </div>
-        )}
+        <div
+          ref={contentBoundsRef}
+          className="w-full bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] text-slate-900"
+          onClick={handleCloseBubble}
+        >
+          {isLoading && (
+            <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] text-center text-slate-900">
+              <p className="-translate-y-10 text-5xl font-bold tracking-tight sm:text-7xl">
+                <span className="rebel-underline">{'El Método.'}</span>
+              </p>
+              <LoaderCircle className="mt-6 h-10 w-10 animate-spin text-slate-500" />
+              
+            </div>
+          )}
 
-        {!isLoading && error && (
-          <div className="flex min-h-[420px] w-full flex-col items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] px-6 text-center">
-            <CircleAlert className="h-10 w-10 text-red-500" />
-            <p className="mt-4 text-lg font-semibold text-slate-800">{error}</p>
-          </div>
-        )}
+          {!isLoading && error && (
+            <div className="flex min-h-[420px] w-full flex-col items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] px-6 text-center">
+              <CircleAlert className="h-10 w-10 text-red-500" />
+              <p className="mt-4 text-lg font-semibold text-slate-800">{error}</p>
+            </div>
+          )}
 
-        {!isLoading && !error && layers.length === 0 && (
-          <div className="flex min-h-[420px] w-full items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] px-6 text-center">
-            <p className="text-lg font-semibold text-slate-800">No hay capas publicadas todavia.</p>
-          </div>
-        )}
+          {!isLoading && !error && layers.length === 0 && (
+            <div className="flex min-h-[420px] w-full items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] px-6 text-center">
+              <p className="text-lg font-semibold text-slate-800">No hay capas publicadas todavia.</p>
+            </div>
+          )}
 
-        {!isLoading && !error && layers.length > 0 && (
-          <div className="w-full bg-transparent">
-            {layers.map((section, sectionIndex) => {
+          {!isLoading && !error && layers.length > 0 && (
+            <div className="w-full bg-transparent">
+              {layers.map((section, sectionIndex) => {
               const totalNodes = section.lessons.length + 1;
               const layerHeight = getLayerHeight(totalNodes);
               const purchaseNodeLeftPercent = getNodeLeftPercent(sectionIndex, 0, totalNodes);
@@ -631,7 +726,7 @@ export default function RoadmapContent({
                         >
                           <RoadmapHintBubble
                             side="left"
-                            borderColor="#9cc3ff"
+                            borderColor="#d7dee8"
                             contentClassName="flex items-center gap-3 bg-white/96 px-3 py-2 sm:px-4 sm:py-2.5"
                           >
                             <FileSpreadsheet className="h-12 w-12 text-[#166534] sm:h-14 sm:w-14" />
@@ -640,7 +735,7 @@ export default function RoadmapContent({
                               lineHeightClass="leading-[1.05]"
                               className="text-base tracking-[0.06em] sm:text-lg"
                             >
-                              Desbloquea los <span className="title-span-highlight">excels</span>
+                              Desbloquea los <span className="title-span-highlight" style={getLayerHighlightStyle(theme.titleBackground)}>excels</span>
                             </HeaderTitle>
                             
                           </RoadmapHintBubble>
@@ -660,7 +755,7 @@ export default function RoadmapContent({
                         >
                           <RoadmapHintBubble
                             side={isToolsPromoOnRight ? 'right' : 'left'}
-                            borderColor="#9cc3ff"
+                            borderColor="#d7dee8"
                             contentClassName="flex items-center gap-3 bg-white/96 px-3 py-2 sm:px-4 sm:py-2.5"
                           >
                             <Wrench className="h-12 w-12 text-[#166534] sm:h-14 sm:w-14" />
@@ -670,7 +765,7 @@ export default function RoadmapContent({
                               className="text-base tracking-[0.06em] sm:text-lg"
                             >
                               Desbloquea nuestras{' '}
-                              <span className="title-span-highlight">herramientas</span>
+                              <span className="title-span-highlight" style={getLayerHighlightStyle(theme.titleBackground)}>herramientas</span>
                             </HeaderTitle>
                           </RoadmapHintBubble>
                         </div>
@@ -689,7 +784,7 @@ export default function RoadmapContent({
                         >
                           <RoadmapHintBubble
                             side={isMoneyPromoOnRight ? 'right' : 'left'}
-                            borderColor="#9cc3ff"
+                            borderColor="#d7dee8"
                             contentClassName="flex items-center gap-3 bg-white/96 px-3 py-2 sm:px-4 sm:py-2.5"
                           >
                             <CircleDollarSign className="h-12 w-12 text-[#166534] sm:h-14 sm:w-14" />
@@ -698,7 +793,7 @@ export default function RoadmapContent({
                               lineHeightClass="leading-[1.05]"
                               className="text-base tracking-[0.06em] sm:text-lg"
                             >
-                              Apuesta  <span className="title-span-highlight">conmigo</span> en directo
+                              Apuesta  <span className="title-span-highlight" style={getLayerHighlightStyle(theme.titleBackground)}>conmigo</span> en directo
                             </HeaderTitle>
                           </RoadmapHintBubble>
                         </div>
@@ -717,7 +812,7 @@ export default function RoadmapContent({
                         >
                           <RoadmapHintBubble
                             side={isValuePromoOnRight ? 'right' : 'left'}
-                            borderColor="#9cc3ff"
+                            borderColor="#d7dee8"
                             contentClassName="max-w-[360px] flex items-center gap-3 bg-white/96 px-3 py-2 sm:px-4 sm:py-2.5"
                           >
                             <Calculator className="h-12 w-12 text-[#166534] sm:h-14 sm:w-14" />
@@ -726,7 +821,7 @@ export default function RoadmapContent({
                               lineHeightClass="leading-[1.08]"
                               className="text-sm tracking-[0.04em] sm:text-base"
                             >
-                              Grupo de<span className="title-span-highlight">apuestas</span> de valor
+                              Grupo de<span className="title-span-highlight" style={getLayerHighlightStyle(theme.titleBackground)}>apuestas</span> de valor
                             </HeaderTitle>
                           </RoadmapHintBubble>
                         </div>
@@ -745,7 +840,7 @@ export default function RoadmapContent({
                         >
                           <RoadmapHintBubble
                             side={isProPromoOnRight ? 'right' : 'left'}
-                            borderColor="#9cc3ff"
+                            borderColor="#d7dee8"
                             contentClassName="max-w-[440px] flex items-center gap-3 bg-white/96 px-3 py-2 sm:px-4 sm:py-2.5"
                           >
                             <Trophy className="h-12 w-12 text-[#166534] sm:h-14 sm:w-14" />
@@ -754,7 +849,7 @@ export default function RoadmapContent({
                               lineHeightClass="leading-[1.08]"
                               className="text-sm tracking-[0.04em] sm:text-base"
                             >
-                              Pro en ligas <span className="title-span-highlight">mayores</span>
+                              Pro en ligas <span className="title-span-highlight" style={getLayerHighlightStyle(theme.titleBackground)}>mayores</span>
                             </HeaderTitle>
                           </RoadmapHintBubble>
                         </div>
@@ -828,11 +923,17 @@ export default function RoadmapContent({
                               }}
                             />
                             <div className="relative flex min-h-[18.5rem] w-full flex-col rounded-[1.1rem] border-2 border-[#d5dbe6] bg-white p-4 sm:min-h-[19.5rem] sm:p-5">
-                              <span className="absolute left-3 top-3 rounded-lg bg-gray-900 px-2 py-1 text-xs font-black text-white">
+                              <span
+                                className="absolute left-3 top-3 rounded-lg px-2 py-1 text-xs font-black text-white shadow-[0_8px_18px_rgba(15,23,42,0.18)]"
+                                style={{
+                                  background: theme.titleBackground,
+                                  border: `1px solid ${theme.titleBorder}`,
+                                }}
+                              >
                                 {section.layer.position}
                               </span>
                               <h3 className="mt-8 line-clamp-4 text-2xl font-bold text-gray-900">
-                                <span className="rebel-underline">El Metodo.</span>{' '}
+                                <span className="rebel-underline">El Método.</span>{' '}
                                 {section.layer.title}
                               </h3>
                               <p className="mt-5 whitespace-nowrap text-4xl font-bold leading-none text-gray-900">
@@ -925,24 +1026,6 @@ export default function RoadmapContent({
                               type="button"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                if (
-                                  sectionIndex === 0 &&
-                                  lessonIndex === EXCEL_PROMO_NODE_INDEX - 1
-                                ) {
-                                  setIsExcelPromoDismissed(true);
-                                }
-                                if (globalLessonNumber === TOOLS_PROMO_GLOBAL_LESSON_NUMBER) {
-                                  setIsToolsPromoDismissed(true);
-                                }
-                                if (globalLessonNumber === MONEY_PROMO_GLOBAL_LESSON_NUMBER) {
-                                  setIsMoneyPromoDismissed(true);
-                                }
-                                if (globalLessonNumber === VALUE_PROMO_GLOBAL_LESSON_NUMBER) {
-                                  setIsValuePromoDismissed(true);
-                                }
-                                if (globalLessonNumber === PRO_PROMO_GLOBAL_LESSON_NUMBER) {
-                                  setIsProPromoDismissed(true);
-                                }
                                 handleToggleLessonBubble(section.layer.id, lessonNode.lesson.id);
                               }}
                               className={`group relative overflow-visible transition-transform duration-500 hover:scale-105 active:translate-y-[2px] ${
@@ -966,32 +1049,6 @@ export default function RoadmapContent({
                               </span>
                             </button>
 
-                            {isBubbleOpen && (
-                              <div
-                                ref={activeBubbleRef}
-                                className="absolute left-1/2 top-[calc(100%+12px)] z-50 w-[320px] max-w-[calc(100vw-16px)] rounded-[1.4rem] border bg-white p-5 text-left shadow-[0_12px_26px_rgba(15,23,42,0.14)] sm:w-[420px] sm:p-6 lg:w-[580px] lg:p-7 xl:w-[700px]"
-                                style={{ borderColor: theme.bubbleBorder, transform: `translateX(calc(-50% + ${bubbleShift}px))` }}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                }}
-                              >
-                                <span
-                                  className="absolute -top-2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t bg-white"
-                                  style={{ borderColor: theme.bubbleBorder, left: `calc(50% + ${bubbleArrowOffset}px)` }}
-                                />
-                                <p className="text-base font-black sm:text-xl lg:text-2xl" style={{ color: theme.titleColor }}>
-                                  {lessonNode.lesson.title}
-                                </p>
-                                <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base sm:leading-7 lg:text-lg lg:leading-8">
-                                  {lessonNode.lesson.summary?.trim() || 'Sin descripcion.'}
-                                </p>
-                                <LessonVideoPanel
-                                  lessonTitle={lessonNode.lesson.title}
-                                  playbackState={lessonVideoPlayback}
-                                  accessReason={activeLessonNode?.access?.reason ?? null}
-                                />
-                              </div>
-                            )}
                           </div>
                         );
                       })}
@@ -1000,11 +1057,99 @@ export default function RoadmapContent({
                   </div>
                 </section>
               );
-            })}
+              })}
+            </div>
+          )}
+        </div>
+      </PageReveal>
+      {activeBubble?.type === 'lesson' && currentLessonModalSnapshot && (
+        <div
+          className={`${isLessonModalClosing ? 'modal-fade-out' : 'modal-fade-in'} ${
+            isFullscreen
+              ? 'fixed inset-0 lg:left-[360px] xl:left-[400px]'
+              : 'fixed inset-0'
+          } z-50 flex items-start justify-center overflow-y-auto bg-[#020817]/55 px-4 py-4 backdrop-blur-sm sm:py-6`}
+          onClick={handleCloseBubble}
+        >
+          <div
+            className="my-auto w-full max-w-[78rem]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={isLessonModalClosing ? 'modal-pop-out' : ''}>
+              <LessonModalPanel
+                snapshot={currentLessonModalSnapshot}
+                layersLength={layers.length}
+                onRequestClose={handleCloseBubble}
+              />
+            </div>
           </div>
-        )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LessonModalPanel({
+  snapshot,
+  layersLength,
+  onRequestClose,
+}: {
+  snapshot: LessonModalSnapshot;
+  layersLength: number;
+  onRequestClose: () => void;
+}) {
+  return (
+    <div className="relative max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[28px] border border-[#c8d7ea] bg-[#f8fbff]/96 p-4 text-slate-900 shadow-2xl sm:max-h-[calc(100vh-3rem)] sm:p-6 lg:p-8">
+      <button
+        type="button"
+        onClick={onRequestClose}
+        className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-700 sm:right-6 sm:top-6"
+        aria-label="Cerrar ventana de leccion"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      <div className="pt-8 sm:pt-6">
+        <LessonModalBody
+          snapshot={snapshot}
+          layersLength={layersLength}
+        />
       </div>
-    </PageReveal>
+    </div>
+  );
+}
+
+function LessonModalBody({
+  snapshot,
+  layersLength,
+}: {
+  snapshot: LessonModalSnapshot;
+  layersLength: number;
+}) {
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="min-w-0">
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+          Lesson {snapshot.lessonId}
+        </p>
+        <h3
+          className="mt-2 text-xl font-black sm:text-2xl lg:text-3xl"
+          style={{ color: getRoadmapLayerTheme(snapshot.sectionIndex, layersLength).titleColor }}
+        >
+          {snapshot.title}
+        </h3>
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7 lg:text-lg lg:leading-8">
+          {snapshot.summary?.trim() || 'Sin descripcion.'}
+        </p>
+      </div>
+
+      <div className="px-0 lg:px-2">
+        <LessonVideoPanel
+          lessonTitle={snapshot.title}
+          playbackState={snapshot.playbackState}
+          accessReason={snapshot.accessReason}
+        />
+      </div>
+    </div>
   );
 }
 

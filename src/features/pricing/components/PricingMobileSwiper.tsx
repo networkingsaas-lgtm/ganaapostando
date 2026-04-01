@@ -1,5 +1,5 @@
 import { Check, X } from 'lucide-react';
-import { useEffect, useRef, useState, type TouchEvent } from 'react';
+import { useRef, useState, type TouchEvent } from 'react';
 import type { PricingPlan } from '../types';
 import ScrollReveal from '../../../shared/components/ScrollReveal';
 
@@ -23,74 +23,17 @@ export default function PricingMobileSwiper({
   const touchStartYRef = useRef<number | null>(null);
   const touchCurrentXRef = useRef<number | null>(null);
   const isHorizontalSwipeRef = useRef(false);
-  const previousBodyOverflowRef = useRef<string | null>(null);
-  const previousHtmlOverflowRef = useRef<string | null>(null);
-  const previousBodyPositionRef = useRef<string | null>(null);
-  const previousBodyTopRef = useRef<string | null>(null);
-  const previousBodyWidthRef = useRef<string | null>(null);
-  const lockedScrollYRef = useRef(0);
 
   const minSwipeDistance = 50;
   const swipeLockThreshold = 12;
   const isLightTheme = theme === 'light';
   const visibleCardIndex = plans.length === 0 ? 0 : Math.min(activeCard, plans.length - 1);
 
-  const unlockVerticalScroll = () => {
-    if (
-      previousBodyOverflowRef.current === null
-      || previousHtmlOverflowRef.current === null
-      || previousBodyPositionRef.current === null
-      || previousBodyTopRef.current === null
-      || previousBodyWidthRef.current === null
-    ) {
-      return;
-    }
-
-    document.body.style.overflow = previousBodyOverflowRef.current;
-    document.documentElement.style.overflow = previousHtmlOverflowRef.current;
-    document.body.style.position = previousBodyPositionRef.current;
-    document.body.style.top = previousBodyTopRef.current;
-    document.body.style.width = previousBodyWidthRef.current;
-    window.scrollTo({ top: lockedScrollYRef.current, behavior: 'auto' });
-
-    previousBodyOverflowRef.current = null;
-    previousHtmlOverflowRef.current = null;
-    previousBodyPositionRef.current = null;
-    previousBodyTopRef.current = null;
-    previousBodyWidthRef.current = null;
-  };
-
-  const lockVerticalScroll = () => {
-    if (
-      previousBodyOverflowRef.current !== null
-      || previousHtmlOverflowRef.current !== null
-      || previousBodyPositionRef.current !== null
-      || previousBodyTopRef.current !== null
-      || previousBodyWidthRef.current !== null
-    ) {
-      return;
-    }
-
-    lockedScrollYRef.current = window.scrollY || window.pageYOffset || 0;
-    previousBodyOverflowRef.current = document.body.style.overflow;
-    previousHtmlOverflowRef.current = document.documentElement.style.overflow;
-    previousBodyPositionRef.current = document.body.style.position;
-    previousBodyTopRef.current = document.body.style.top;
-    previousBodyWidthRef.current = document.body.style.width;
-
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${lockedScrollYRef.current}px`;
-    document.body.style.width = '100%';
-  };
-
   const resetTouchTracking = () => {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
     touchCurrentXRef.current = null;
     isHorizontalSwipeRef.current = false;
-    unlockVerticalScroll();
   };
 
   const onTouchStart = (x: number, y: number) => {
@@ -117,13 +60,7 @@ export default function PricingMobileSwiper({
 
       if (movedFarEnough && Math.abs(deltaX) > Math.abs(deltaY)) {
         isHorizontalSwipeRef.current = true;
-        lockVerticalScroll();
-        event.preventDefault();
       }
-    }
-
-    if (isHorizontalSwipeRef.current) {
-      event.preventDefault();
     }
   };
 
@@ -149,13 +86,6 @@ export default function PricingMobileSwiper({
 
     resetTouchTracking();
   };
-
-  useEffect(() => {
-    return () => {
-      unlockVerticalScroll();
-    };
-  }, []);
-
   return (
     <>
       <div className="mt-3 mb-5 sm:mb-6 flex items-center justify-center gap-2 md:hidden">

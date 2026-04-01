@@ -1,7 +1,7 @@
 import { ArrowLeft, PanelLeft } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { SIDEBAR_ITEMS, SIDEBAR_WIDTH_CLASS } from '../constants';
-import { useSharedRoadmapData } from '../../roadmap/context/RoadmapDataContext';
+import { useDashboardCatalog } from '../context/DashboardCatalogContext';
 
 const lessonHasPaidAccess = (reason: string | null | undefined, canAccess: boolean | undefined) =>
   reason === 'entitled' || Boolean(canAccess);
@@ -25,7 +25,7 @@ export default function PortalSidebar({
   onNavigate,
   onOpenLogout,
 }: Props) {
-  const { isLoading: isCoursesLoading, layers } = useSharedRoadmapData();
+  const { isLoading: isCoursesLoading, layers } = useDashboardCatalog();
   const mobileSidebarItems = useMemo(() => {
     const mapItem = SIDEBAR_ITEMS.find((item) => item.path === 'mapa');
     if (!mapItem) {
@@ -249,12 +249,12 @@ export default function PortalSidebar({
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-500/18 text-red-100">
               <ArrowLeft className="h-5 w-5" />
             </span>
-            <span className="text-base font-semibold">Cerrar sesion</span>
+            <span className="text-base font-semibold">Cerrar sesión</span>
           </button>
 
           <div className="mt-auto pt-8 text-center">
             <span className="text-xl font-extrabold text-white">
-              <span className="rebel-underline">El Metodo.</span>
+              <span className="rebel-underline">El Método.</span>
             </span>
           </div>
         </div>

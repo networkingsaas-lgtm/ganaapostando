@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createCheckoutSession } from '../../../api/services/paymentsService';
 import { pollLessonAccessActivation } from '../../../api/services/userAccessService';
+import { useDashboardCatalog } from '../../portal-shell/context/DashboardCatalogContext';
 import { getAuthenticatedUserLabel } from '../../portal-shell/utils';
-import { useSharedRoadmapData } from '../../roadmap/context/RoadmapDataContext';
 import type { LayerSection } from '../../roadmap/types';
 import { formatPriceEur } from '../../roadmap/utils';
 import { pricingPlans } from '../../pricing/plans';
@@ -188,8 +188,8 @@ export const useUserSettingsLogic = () => {
   const {
     isLoading: isCoursesLoading,
     layers,
-    refreshRoadmap,
-  } = useSharedRoadmapData();
+    refreshDashboardCatalog,
+  } = useDashboardCatalog();
   const handledSettingsLocationKeyRef = useRef<string | null>(null);
   const billingSelectorTimeoutRef = useRef<number | null>(null);
 
@@ -443,7 +443,7 @@ export const useUserSettingsLogic = () => {
     if (!checkoutLessonId || !productId) {
       setCheckoutNotice('Pago recibido. Estamos actualizando tus accesos.');
       setCheckoutNoticeTone('info');
-      refreshRoadmap();
+      refreshDashboardCatalog();
       navigate('/dashboard/ajustes', { replace: true });
       return;
     }
@@ -473,7 +473,7 @@ export const useUserSettingsLogic = () => {
         if (matchedLessonId !== null) {
           setCheckoutNotice('Acceso activado correctamente.');
           setCheckoutNoticeTone('success');
-          refreshRoadmap();
+          refreshDashboardCatalog();
           navigate('/dashboard/mapa', {
             replace: true,
             state: {
@@ -495,7 +495,7 @@ export const useUserSettingsLogic = () => {
 
       setCheckoutNotice('El pago se registró, pero el acceso tarda más de lo normal. Recarga en unos segundos.');
       setCheckoutNoticeTone('error');
-      refreshRoadmap();
+      refreshDashboardCatalog();
       navigate('/dashboard/ajustes', { replace: true });
     };
 
@@ -504,7 +504,7 @@ export const useUserSettingsLogic = () => {
     return () => {
       controller.abort();
     };
-  }, [authUser, getCandidateLessonIdsForProduct, location.search, navigate, refreshRoadmap]);
+  }, [authUser, getCandidateLessonIdsForProduct, location.search, navigate, refreshDashboardCatalog]);
 
   useEffect(() => {
     if (handledSettingsLocationKeyRef.current === location.key) {

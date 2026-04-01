@@ -1,46 +1,47 @@
 import { ACCESS_REQUEST_CONCURRENCY } from '../../features/roadmap/constants';
 import { buildLayerSections, getPublishedLessons, runTasksWithConcurrency } from '../../features/roadmap/utils';
-import type { LayerSection, LessonAccessResponse } from '../../features/roadmap/types';
+import type { LayerSection, LessonAccessResponse, Product } from '../../features/roadmap/types';
 import { fetchRoadmapCatalog } from './catalogService';
 import { ApiError, getJson } from '../core/backendClient';
 import { getSupabaseApiClient } from '../core/supabaseClient';
 import { normalizeLessonAccess } from '../../features/roadmap/utils';
 
-export interface RoadmapDataSnapshot {
+export interface DashboardCatalogSnapshot {
   layers: LayerSection[];
+  products: Product[];
   productsCount: number;
 }
 
-export interface RoadmapAccessContext {
+export interface DashboardCatalogAccessContext {
   sessionKey: string;
   accessToken: string | null;
 }
 
-interface LoadRoadmapDataOptions {
+interface LoadDashboardCatalogOptions {
   signal?: AbortSignal;
   accessToken?: string | null;
 }
 
-const ROADMAP_SESSION_KEY_ANON = 'anon';
+const DASHBOARD_SESSION_KEY_ANON = 'anon';
 
-export const getRoadmapAccessContext = async (): Promise<RoadmapAccessContext> => {
+export const getDashboardCatalogAccessContext = async (): Promise<DashboardCatalogAccessContext> => {
   const supabase = getSupabaseApiClient();
   const { data, error } = await supabase.auth.getSession();
 
   if (error || !data.session) {
     return {
-      sessionKey: ROADMAP_SESSION_KEY_ANON,
+      sessionKey: DASHBOARD_SESSION_KEY_ANON,
       accessToken: null,
     };
   }
 
   return {
-    sessionKey: data.session.user.id || ROADMAP_SESSION_KEY_ANON,
+    sessionKey: data.session.user.id || DASHBOARD_SESSION_KEY_ANON,
     accessToken: data.session.access_token,
   };
 };
 
-export const fetchRoadmapLessonAccess = async (
+export const fetchDashboardLessonAccess = async (
   lessonId: number,
   accessToken: string | null,
   signal?: AbortSignal,
@@ -73,15 +74,15 @@ export const fetchRoadmapLessonAccess = async (
   }
 };
 
-export const loadRoadmapData = async ({
+export const loadDashboardCatalogData = async ({
   signal,
   accessToken,
-}: LoadRoadmapDataOptions = {}): Promise<RoadmapDataSnapshot> => {
+}: LoadDashboardCatalogOptions = {}): Promise<DashboardCatalogSnapshot> => {
   const catalog = await fetchRoadmapCatalog(signal);
   const lessons = getPublishedLessons(catalog);
   const accessByLessonEntries = await runTasksWithConcurrency(
     lessons,
-    async (lesson) => [lesson.id, await fetchRoadmapLessonAccess(lesson.id, accessToken ?? null, signal)] as const,
+    async (lesson) => [lesson.id, await fetchDashboardLessonAccess(lesson.id, accessToken ?? null, signal)] as const,
     ACCESS_REQUEST_CONCURRENCY,
   );
 
@@ -89,6 +90,7 @@ export const loadRoadmapData = async ({
 
   return {
     layers: buildLayerSections(catalog, accessByLessonId),
+    products: catalog.products,
     productsCount: catalog.products.length,
   };
 };

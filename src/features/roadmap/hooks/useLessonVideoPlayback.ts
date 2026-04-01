@@ -72,6 +72,9 @@ export const useLessonVideoPlayback = (lessonId: number | null): LessonVideoPlay
   const [state, setState] = useState<LessonVideoPlaybackState>(INITIAL_STATE);
   const [retrySeed, setRetrySeed] = useState(0);
   const refreshTimerRef = useRef<number | null>(null);
+  const cacheRef = useRef<
+    Map<number, Pick<LessonVideoPlaybackState, 'video' | 'reason' | 'errorMessage'>>
+  >(new Map());
 
   const clearRefreshTimer = useCallback(() => {
     if (refreshTimerRef.current !== null) {
@@ -94,6 +97,50 @@ export const useLessonVideoPlayback = (lessonId: number | null): LessonVideoPlay
 
     const controller = new AbortController();
     let isActive = true;
+    const cachedState = cacheRef.current.get(lessonId);
+
+    const scheduleRefresh = (expiresAt: string | null) => {
+      const delayMs = getRetryDelayMs(expiresAt);
+
+      if (delayMs === null) {
+        return;
+      }
+
+      refreshTimerRef.current = window.setTimeout(() => {
+        if (isActive) {
+          setRetrySeed((current) => current + 1);
+        }
+      }, delayMs);
+    };
+
+    const hasValidCachedVideo = Boolean(
+      cachedState?.video?.playbackUrl && getRetryDelayMs(cachedState.video.expiresAt) !== null,
+    );
+    const canReuseCache = retrySeed === 0 && Boolean(cachedState) && (
+      hasValidCachedVideo
+      || cachedState?.reason !== null
+      || cachedState?.errorMessage !== null
+    );
+
+    if (canReuseCache && cachedState) {
+      setState({
+        lessonId,
+        isLoading: false,
+        video: cachedState.video,
+        reason: cachedState.reason,
+        errorMessage: cachedState.errorMessage,
+      });
+
+      if (hasValidCachedVideo) {
+        scheduleRefresh(cachedState.video?.expiresAt ?? null);
+      }
+
+      return () => {
+        isActive = false;
+        controller.abort();
+        clearRefreshTimer();
+      };
+    }
 
     setState((current) =>
       current.lessonId === lessonId
@@ -112,20 +159,6 @@ export const useLessonVideoPlayback = (lessonId: number | null): LessonVideoPlay
           },
     );
 
-    const scheduleRefresh = (expiresAt: string | null) => {
-      const delayMs = getRetryDelayMs(expiresAt);
-
-      if (delayMs === null) {
-        return;
-      }
-
-      refreshTimerRef.current = window.setTimeout(() => {
-        if (isActive) {
-          setRetrySeed((current) => current + 1);
-        }
-      }, delayMs);
-    };
-
     const loadVideo = async () => {
       const response = await fetchLessonVideoAccess(lessonId, controller.signal);
 
@@ -134,6 +167,7 @@ export const useLessonVideoPlayback = (lessonId: number | null): LessonVideoPlay
       }
 
       const nextState = normalizeLessonVideoState(response);
+      cacheRef.current.set(lessonId, nextState);
 
       setState({
         lessonId,
@@ -151,15 +185,23 @@ export const useLessonVideoPlayback = (lessonId: number | null): LessonVideoPlay
         return;
       }
 
+      const nextErrorMessage = getFriendlyRequestErrorMessage(
+        error,
+        'No se pudo cargar el video de la leccion.',
+      );
+
+      cacheRef.current.set(lessonId, {
+        video: null,
+        reason: null,
+        errorMessage: nextErrorMessage,
+      });
+
       setState({
         lessonId,
         isLoading: false,
         video: null,
         reason: null,
-        errorMessage: getFriendlyRequestErrorMessage(
-          error,
-          'No se pudo cargar el video de la lección.',
-        ),
+        errorMessage: nextErrorMessage,
       });
     });
 

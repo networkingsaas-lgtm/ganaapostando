@@ -1,7 +1,7 @@
 import RoadmapContent from '../features/roadmap/components/RoadmapContent';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useSharedRoadmapData } from '../features/roadmap/context/RoadmapDataContext';
+import { useDashboardCatalog } from '../features/portal-shell/context/DashboardCatalogContext';
 
 interface RoadmapRouteState {
   focusLessonId?: number;
@@ -12,13 +12,13 @@ interface RoadmapRouteState {
 export default function RoadmapPage() {
   const location = useLocation();
   const routeState = location.state as RoadmapRouteState | null;
-  const { isLoading, error, layers, refreshRoadmap } = useSharedRoadmapData();
+  const { isLoading, error, layers, refreshDashboardCatalog } = useDashboardCatalog();
 
   useEffect(() => {
     if (routeState?.forceRoadmapRefresh) {
-      refreshRoadmap();
+      refreshDashboardCatalog();
     }
-  }, [refreshRoadmap, routeState?.forceRoadmapRefresh]);
+  }, [refreshDashboardCatalog, routeState?.forceRoadmapRefresh]);
 
   return (
     <div style={{ fontFamily: "'Sora', sans-serif" }}>

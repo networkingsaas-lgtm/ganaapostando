@@ -8,7 +8,7 @@ import UserSettingsPage from './UserSettingsPage';
 import GrupoApuestasPage from './GrupoApuestasPage';
 import AppModal from '../shared/components/AppModal';
 import { useAuthSession } from '../shared/auth/AuthSessionContext';
-import { RoadmapDataProvider } from '../features/roadmap/context/RoadmapDataContext';
+import { DashboardCatalogProvider } from '../features/portal-shell/context/DashboardCatalogContext';
 
 interface Props {
   onVolver: () => void;
@@ -64,8 +64,9 @@ export default function PortalLayout({ onVolver }: Props) {
   const currentSubRoute = (location.pathname.replace(/^\/dashboard\/?/, '') || 'mapa').split('/')[0];
   const isMapView = currentSubRoute === 'mapa';
   const isSettingsView = currentSubRoute === 'ajustes';
-  const usesLightSurface = isMapView || isSettingsView;
-  const portalSurfaceClass = isSettingsView
+  const isGrupoApuestasView = currentSubRoute === 'grupo-apuestas';
+  const usesLightSurface = isMapView || isSettingsView || isGrupoApuestasView;
+  const portalSurfaceClass = isSettingsView || isGrupoApuestasView
     ? 'bg-[#f2f2f7] text-slate-900'
     : usesLightSurface
       ? 'bg-white text-slate-900'
@@ -104,7 +105,7 @@ export default function PortalLayout({ onVolver }: Props) {
       {!usesLightSurface && (
         <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.14),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(91,194,255,0.18),_transparent_24%)]" />
       )}
-      <RoadmapDataProvider>
+      <DashboardCatalogProvider>
         <div className="relative mx-auto h-screen max-w-[1600px]">
           <PortalSidebar
             sidebarOpen={sidebarOpen}
@@ -151,7 +152,7 @@ export default function PortalLayout({ onVolver }: Props) {
             </Routes>
           </main>
         </div>
-      </RoadmapDataProvider>
+      </DashboardCatalogProvider>
 
       <AppModal
         open={logoutConfirmOpen}

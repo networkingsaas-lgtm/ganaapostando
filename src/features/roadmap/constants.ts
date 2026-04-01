@@ -42,12 +42,12 @@ export const ROADMAP_LOCKED_LESSON_BUTTON_PALETTE: RoadmapNodePalette = {
 };
 
 export const ROADMAP_PURCHASE_ENABLED_BUTTON_PALETTE: RoadmapNodePalette = {
-  side: 'hsl(214 70% 36%)',
-  sideBorder: 'hsl(214 64% 28%)',
-  face: 'hsl(214 76% 44%)',
-  faceBorder: 'hsl(214 82% 62%)',
-  text: '#ffffff',
-  glow: '0 12px 22px hsla(214 86% 38% / 0.34)',
+  side: 'hsl(40 72% 30%)',
+  sideBorder: 'hsl(38 68% 22%)',
+  face: 'hsl(43 78% 46%)',
+  faceBorder: 'hsl(48 92% 68%)',
+  text: '#fff7df',
+  glow: '0 12px 22px hsla(42 92% 30% / 0.34)',
 };
 
 const interpolate = (from: number, to: number, progress: number) => from + (to - from) * progress;

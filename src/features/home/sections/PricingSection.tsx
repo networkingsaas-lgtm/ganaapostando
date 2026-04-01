@@ -1,6 +1,5 @@
 import { Check, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import PricingMobileSwiper from '../../pricing/components/PricingMobileSwiper';
 import { pricingPlans } from '../../pricing/plans';
 import { openStripeCheckout } from '../../../lib/stripe';
@@ -10,14 +9,15 @@ interface Props {
   flashButtonsKey?: number;
   startMode?: 'register' | 'stripe';
   theme?: 'dark' | 'light';
+  onRegistrarse?: () => void;
 }
 
 export default function PricingSection({
   flashButtonsKey = 0,
   startMode = 'register',
   theme = 'dark',
+  onRegistrarse,
 }: Props) {
-  const navigate = useNavigate();
   const [planModal, setPlanModal] = useState<null | { name: string; content: string[] }>(null);
   const [animClass, setAnimClass] = useState('');
   const isLightTheme = theme === 'light';
@@ -37,11 +37,11 @@ export default function PricingSection({
         return;
       }
 
-      navigate('/registro');
+      onRegistrarse?.();
       return;
     }
 
-    navigate('/registro');
+    onRegistrarse?.();
   };
 
   return (

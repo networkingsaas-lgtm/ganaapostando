@@ -94,7 +94,7 @@ function LandingPage({
       <EstudianteSection />
       <MetodoStatsSection onVerResultados={onVerResultados} />
       <AprenderSection />
-      <PricingSection flashButtonsKey={flashButtonsKey} />
+      <PricingSection flashButtonsKey={flashButtonsKey} onRegistrarse={onRegistrarse} />
       <CTASection onVerResultados={onVerResultados} />
     </div>
   );

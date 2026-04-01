@@ -117,6 +117,7 @@ export interface MapPoint {
 
 export interface RoadmapDataState {
   layers: LayerSection[];
+  products: Product[];
   productsCount: number;
   isLoading: boolean;
   error: string | null;
