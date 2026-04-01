@@ -1,4 +1,9 @@
-import { getFriendlyRequestErrorMessage, postJson } from '../core/backendClient';
+import {
+  buildBackendApiUrl,
+  ensureOk,
+  getFriendlyRequestErrorMessage,
+  postJson,
+} from '../core/backendClient';
 import { getSupabaseApiClient } from '../core/supabaseClient';
 import { getOptionalClientEnv } from '../../lib/env';
 
@@ -18,6 +23,18 @@ const parseAllowedOrigins = (value: string | null) =>
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+const getAuthenticatedAccessToken = async () => {
+  const supabase = getSupabaseApiClient();
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+
+  if (sessionError || !accessToken) {
+    throw new Error('Necesitas iniciar sesion para continuar con el pago.');
+  }
+
+  return accessToken;
+};
+
 const assertAllowedCheckoutReturnUrl = (targetUrl: string) => {
   const allowedOrigins = parseAllowedOrigins(getOptionalClientEnv('VITE_CHECKOUT_RETURN_URL_ORIGINS'));
 
@@ -29,7 +46,7 @@ const assertAllowedCheckoutReturnUrl = (targetUrl: string) => {
 
   if (!allowedOrigins.includes(targetOrigin)) {
     throw new Error(
-      'La URL de retorno del checkout no está permitida para este entorno. Revisa VITE_CHECKOUT_RETURN_URL_ORIGINS.',
+      'La URL de retorno del checkout no esta permitida para este entorno. Revisa VITE_CHECKOUT_RETURN_URL_ORIGINS.',
     );
   }
 };
@@ -42,13 +59,7 @@ export const createCheckoutSession = async ({
   assertAllowedCheckoutReturnUrl(successUrl);
   assertAllowedCheckoutReturnUrl(cancelUrl);
 
-  const supabase = getSupabaseApiClient();
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-  const accessToken = sessionData.session?.access_token;
-
-  if (sessionError || !accessToken) {
-    throw new Error('Necesitas iniciar sesión para continuar con el pago.');
-  }
+  const accessToken = await getAuthenticatedAccessToken();
 
   let payload: CheckoutSessionResponse;
 
@@ -73,8 +84,27 @@ export const createCheckoutSession = async ({
   }
 
   if (!payload.checkoutUrl || typeof payload.checkoutUrl !== 'string') {
-    throw new Error('La respuesta de checkout no incluyó una URL válida.');
+    throw new Error('La respuesta de checkout no incluyo una URL valida.');
   }
 
   return payload.checkoutUrl;
+};
+
+export const cancelSubscription = async () => {
+  const accessToken = await getAuthenticatedAccessToken();
+
+  try {
+    const response = await fetch(buildBackendApiUrl('/payments/subscription/cancel'), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    await ensureOk(response);
+  } catch (error) {
+    throw new Error(
+      getFriendlyRequestErrorMessage(error, 'No se pudo cancelar la suscripcion en este momento.'),
+    );
+  }
 };

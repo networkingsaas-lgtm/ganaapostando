@@ -37,6 +37,8 @@ Si ya estas en `C:\Users\apren\webapuestas`, basta con entrar en `webformacionap
 - `npm run preview`: sirve el build localmente para revisar la version de produccion.
 - `npm run lint`: ejecuta ESLint sobre el codigo.
 
+`npm run dev` queda expuesto en la red local por defecto (`0.0.0.0`), asi que puedes abrirlo desde otros dispositivos conectados a la misma Wi-Fi/LAN usando la IP local de tu equipo y el puerto de Vite.
+
 ## Variables De Entorno
 
 Variables consumidas por la app:
@@ -49,8 +51,8 @@ Variables consumidas por la app:
 
 Variables opcionales para Vite, solo para desarrollo/preview:
 
-- `DEV_HOST` / `DEV_PORT`: host y puerto del servidor `vite`.
-- `PREVIEW_HOST` / `PREVIEW_PORT`: host y puerto de `vite preview`.
+- `DEV_HOST` / `DEV_PORT`: host y puerto del servidor `vite`. Si no se define `DEV_HOST`, se usa `0.0.0.0`.
+- `PREVIEW_HOST` / `PREVIEW_PORT`: host y puerto de `vite preview`. Si no se define `PREVIEW_HOST`, se usa `0.0.0.0`.
 - `DEV_ALLOWED_HOSTS` / `PREVIEW_ALLOWED_HOSTS`: lista separada por comas de hosts permitidos.
 
 Notas:

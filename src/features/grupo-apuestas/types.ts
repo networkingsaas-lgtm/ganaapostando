@@ -21,6 +21,10 @@ export interface TelegramBotStatus {
 export interface TelegramMeResponse {
   userId: string;
   activeSubscription: boolean;
+  expiresAt?: string | null;
+  endsAt?: string | null;
+  subscriptionExpiresAt?: string | null;
+  entitlementEndsAt?: string | null;
   telegram: TelegramLinkedAccount | null;
   bot: TelegramBotStatus;
 }

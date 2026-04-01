@@ -104,6 +104,28 @@ const formatDateTime = (value: string | null) => {
   return DATE_TIME_FORMATTER.format(parsedDate);
 };
 
+const getLatestDateValue = (values: Array<string | null | undefined>) => {
+  let latestValue: string | null = null;
+  let latestTime = Number.NEGATIVE_INFINITY;
+
+  for (const value of values) {
+    if (!value) {
+      continue;
+    }
+
+    const parsedTime = Date.parse(value);
+
+    if (!Number.isFinite(parsedTime) || parsedTime <= latestTime) {
+      continue;
+    }
+
+    latestValue = value;
+    latestTime = parsedTime;
+  }
+
+  return latestValue;
+};
+
 const easeInOutCubic = (value: number) => (
   value < 0.5
     ? 4 * value * value * value
@@ -266,6 +288,25 @@ export const useUserSettingsLogic = () => {
       ),
     [layers],
   );
+  const methodEntitlementExpiresAtLabel = useMemo(() => {
+    if (!isMethodPurchased) {
+      return null;
+    }
+
+    const latestEntitlementEnd = getLatestDateValue(
+      layers.flatMap((section) =>
+        section.lessons
+          .filter(
+            (lessonNode) =>
+              lessonNode.products.some((product) => product.id === 6)
+              && lessonHasPaidAccess(lessonNode.reason, lessonNode.access?.canAccess),
+          )
+          .map((lessonNode) => lessonNode.access?.entitlement?.ends_at ?? null),
+      ),
+    );
+
+    return formatDateTime(latestEntitlementEnd);
+  }, [isMethodPurchased, layers]);
   const methodProductPriceLabel = useMemo(() => {
     const methodProduct = layers
       .flatMap((section) => [...section.mappedProducts, ...section.lessons.flatMap((lesson) => lesson.products)])
@@ -575,6 +616,7 @@ export const useUserSettingsLogic = () => {
     billingDeckLayout,
     methodProductPriceLabel,
     isMethodPurchased,
+    methodEntitlementExpiresAtLabel,
     isStartingMethodCheckout,
     methodCheckoutTarget,
     handleStartMethodCheckout,

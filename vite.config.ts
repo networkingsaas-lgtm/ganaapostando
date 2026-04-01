@@ -16,7 +16,7 @@ const parseHost = (value: string | undefined) => {
   const host = value?.trim()
 
   if (!host || host === 'localhost') {
-    return '127.0.0.1'
+    return '0.0.0.0'
   }
 
   return host

@@ -6,6 +6,57 @@ import { formatPriceEur } from '../../roadmap/utils';
 const lessonHasPaidAccess = (reason: string | null | undefined, canAccess: boolean | undefined) =>
   reason === 'entitled' || Boolean(canAccess);
 
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('es-ES', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+const formatDateTime = (value: string | null) => {
+  if (!value) {
+    return 'No disponible';
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'No disponible';
+  }
+
+  return DATE_TIME_FORMATTER.format(parsedDate);
+};
+
+const getLatestLayerEntitlementEnd = (layerSection: LayerSection | undefined) => {
+  if (!layerSection) {
+    return null;
+  }
+
+  let latestValue: string | null = null;
+  let latestTime = Number.NEGATIVE_INFINITY;
+
+  for (const lessonNode of layerSection.lessons) {
+    if (!lessonHasPaidAccess(lessonNode.reason, lessonNode.access?.canAccess)) {
+      continue;
+    }
+
+    const endsAt = lessonNode.access?.entitlement?.ends_at ?? null;
+
+    if (!endsAt) {
+      continue;
+    }
+
+    const parsedTime = Date.parse(endsAt);
+
+    if (!Number.isFinite(parsedTime) || parsedTime <= latestTime) {
+      continue;
+    }
+
+    latestValue = endsAt;
+    latestTime = parsedTime;
+  }
+
+  return latestValue;
+};
+
 const LoadingLine = ({ className }: { className: string }) => (
   <span className={`block animate-pulse rounded-full bg-slate-200/90 ${className}`} />
 );
@@ -33,6 +84,7 @@ interface Props {
   };
   methodProductPriceLabel: string;
   isMethodPurchased: boolean;
+  methodEntitlementExpiresAtLabel: string | null;
   isStartingMethodCheckout: boolean;
   methodCheckoutTarget: {
     productId: number;
@@ -73,6 +125,7 @@ const UserSettingsView: FC<Props> = ({
   billingDeckLayout,
   methodProductPriceLabel,
   isMethodPurchased,
+  methodEntitlementExpiresAtLabel,
   isStartingMethodCheckout,
   methodCheckoutTarget,
   handleStartMethodCheckout,
@@ -243,6 +296,11 @@ const UserSettingsView: FC<Props> = ({
                   <li>Sin desbloqueos por etapas.</li>
                   <li>Ideal si quieres todo el contenido desde el inicio.</li>
                 </ul>
+                {isMethodPurchased && (
+                  <p className="mt-auto pt-4 text-sm font-semibold text-blue-700">
+                    Caduca: {methodEntitlementExpiresAtLabel}
+                  </p>
+                )}
               </div>
 
               <button
@@ -308,6 +366,9 @@ const UserSettingsView: FC<Props> = ({
                 const isStartingCheckout = Boolean(
                   layerCard && isStartingCheckoutByLayerId === layerCard.layer.id,
                 );
+                const layerEntitlementExpiresAtLabel = isPurchased
+                  ? formatDateTime(getLatestLayerEntitlementEnd(layerCard))
+                  : null;
                 const layerDescription = layerCard?.layer.description?.trim()
                   || layerCard?.layer.teaser_text?.trim()
                   || 'Desbloquea esta capa para acceder al contenido de este bloque.';
@@ -395,6 +456,11 @@ const UserSettingsView: FC<Props> = ({
                     <p className="mt-3 text-sm leading-relaxed text-gray-600">
                       {layerDescription}
                     </p>
+                    {isPurchased && (
+                      <p className="mt-auto pt-4 text-sm font-semibold text-blue-700">
+                        Caduca: {layerEntitlementExpiresAtLabel}
+                      </p>
+                    )}
                   </div>
                 );
               })}
