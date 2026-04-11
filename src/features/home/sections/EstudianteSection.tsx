@@ -25,7 +25,7 @@ export default function EstudianteSection() {
       <div className="mx-auto max-w-7xl">
         <div className="max-w-4xl text-left">
           <p className="mb-8 text-4xl font-normal tracking-tight sm:text-6xl" style={{ fontFamily: "'Sora', sans-serif" }}>
-            <span className="font-bold tracking-tight">Aprende</span> nuestra metodología para <span className="font-bold tracking-tight">generar ingresos</span>.
+            <span className="font-bold tracking-tight">Genera ingresos</span> de forma independiente.
           </p>
           <p className="text-base text-slate-600 sm:text-xl" style={{ fontFamily: "'Sora', sans-serif" }}>
             Una formación paso a paso para entender el mercado, reducir errores y construir un criterio rentable.

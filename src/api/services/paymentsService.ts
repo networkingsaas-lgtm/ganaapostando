@@ -29,7 +29,7 @@ const getAuthenticatedAccessToken = async () => {
   const accessToken = sessionData.session?.access_token;
 
   if (sessionError || !accessToken) {
-    throw new Error('Necesitas iniciar sesion para continuar con el pago.');
+    throw new Error('Necesitas iniciar sesión para continuar con el pago.');
   }
 
   return accessToken;
@@ -105,6 +105,25 @@ export const cancelSubscription = async () => {
   } catch (error) {
     throw new Error(
       getFriendlyRequestErrorMessage(error, 'No se pudo cancelar la suscripcion en este momento.'),
+    );
+  }
+};
+
+export const reactivateSubscription = async () => {
+  const accessToken = await getAuthenticatedAccessToken();
+
+  try {
+    const response = await fetch(buildBackendApiUrl('/payments/subscription/reactivate'), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    await ensureOk(response);
+  } catch (error) {
+    throw new Error(
+      getFriendlyRequestErrorMessage(error, 'No se pudo reactivar la suscripcion en este momento.'),
     );
   }
 };

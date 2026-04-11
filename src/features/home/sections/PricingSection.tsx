@@ -48,7 +48,7 @@ export default function PricingSection({
     <section id="pricing" className="relative overflow-hidden py-12 sm:py-20 section-padding">
       {!isLightTheme && (
         <div
-          className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-20"
+          className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-[0.30]"
           style={{ backgroundImage: "url('/pricing-bg.png')" }}
           aria-hidden="true"
         />

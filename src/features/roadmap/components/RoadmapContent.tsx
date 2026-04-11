@@ -4,7 +4,6 @@ import {
   CircleDollarSign,
   FileSpreadsheet,
   List,
-  LoaderCircle,
   Lock,
   SkipForward,
   Trophy,
@@ -15,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { createCheckoutSession } from '../../../api/services/paymentsService';
 import PageReveal from '../../../shared/components/PageReveal';
+import MetodoLoadingScreen from '../../../shared/components/MetodoLoadingScreen';
 import ScrollReveal from '../../../shared/components/ScrollReveal';
 import HeaderTitle from '../../../shared/components/HeaderTitle';
 import {
@@ -488,13 +488,7 @@ export default function RoadmapContent({
           onClick={handleCloseBubble}
         >
           {isLoading && (
-            <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)] text-center text-slate-900">
-              <p className="-translate-y-10 text-5xl font-bold tracking-tight sm:text-7xl">
-                <span className="rebel-underline">{'El Método.'}</span>
-              </p>
-              <LoaderCircle className="mt-6 h-10 w-10 animate-spin text-slate-500" />
-              
-            </div>
+            <MetodoLoadingScreen />
           )}
 
           {!isLoading && error && (

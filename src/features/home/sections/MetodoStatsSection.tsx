@@ -55,7 +55,7 @@ export default function MetodoStatsSection({ onVerResultados }: Props) {
         <img
           src={backgroundImage}
           alt=""
-          className={`h-full w-full scale-x-[-1] object-cover opacity-[0.20] ${
+          className={`h-full w-full scale-x-[-1] object-cover opacity-[0.30] ${
             isSmallScreen ? 'origin-center scale-[1.28] object-center' : 'object-center'
           }`}
         />
@@ -64,7 +64,7 @@ export default function MetodoStatsSection({ onVerResultados }: Props) {
       <div className="relative z-10 max-w-7xl mx-auto">
         <div className="max-w-5xl ml-auto text-right">
           <p className="mb-8 text-4xl font-normal sm:text-6xl tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
-            Resultados con <span className="font-bold tracking-tight">nuestra metodología</span>.
+            Resultados con <span className="font-bold tracking-tight">nuestra formación</span>.
           </p>
          
             

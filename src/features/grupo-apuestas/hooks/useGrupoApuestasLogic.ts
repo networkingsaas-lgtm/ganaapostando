@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  getBackendApiBaseUrl,
   getFriendlyRequestErrorMessage,
 } from '../../../api/core/backendClient';
-import { cancelSubscription, createCheckoutSession } from '../../../api/services/paymentsService';
+import {
+  cancelSubscription,
+  createCheckoutSession,
+  reactivateSubscription,
+} from '../../../api/services/paymentsService';
 import { useAuthSession } from '../../../shared/auth/AuthSessionContext';
 import { useDashboardCatalog } from '../../portal-shell/context/DashboardCatalogContext';
-import { ROADMAP_CACHE_TTL_MS, ROADMAP_CACHE_VERSION } from '../../roadmap/constants';
-import { formatPriceEur } from '../../roadmap/utils';
-import { createTelegramLinkToken, fetchTelegramVipStatus } from '../services/telegramVipService';
-import type { TelegramInviteStatus, TelegramMeResponse } from '../types';
+import type { Product } from '../../roadmap/types';
+import { createTelegramLinkToken, loadTelegramVipStatus } from '../services/telegramVipService';
+import type {
+  TelegramGroupInfo,
+  TelegramInviteStatus,
+  TelegramMeResponse,
+} from '../types';
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',
@@ -29,6 +35,19 @@ const formatDateTime = (value: string | null) => {
   }
 
   return DATE_TIME_FORMATTER.format(parsedDate);
+};
+
+const getGroupInfoFromStatus = (status: TelegramMeResponse | null): TelegramGroupInfo | null => {
+  if (!status) {
+    return null;
+  }
+
+  return {
+    configured: status.group?.configured ?? status.bot.configured ?? false,
+    memberCount: status.group?.memberCount ?? status.groupMemberCount ?? null,
+    memberCountUpdatedAt: status.group?.memberCountUpdatedAt ?? null,
+    recentActivityAt: status.group?.recentActivityAt ?? status.recentActivityAt ?? null,
+  };
 };
 
 const getInviteStatusLabel = (status: TelegramInviteStatus | null) => {
@@ -83,140 +102,166 @@ const getShouldUseDirectNavigation = () => (
   typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false
 );
 
-const TELEGRAM_VIP_STATUS_CACHE_KEY_PREFIX = 'telegram-vip-status-cache';
-const TELEGRAM_VIP_STATUS_SESSION_KEY_ANON = 'anon';
+export type TelegramPricingPlanKey = 'mensual' | 'trimestral' | 'anual';
 
-interface TelegramVipStatusCachePayload {
-  version: number;
-  savedAt: number;
-  status: TelegramMeResponse;
+interface TelegramPricingPlan {
+  key: TelegramPricingPlanKey;
+  name: string;
+  priceLabel: string;
+  periodLabel: string;
+  features: string[];
+  productId: number | null;
+  isAvailable: boolean;
+  isHighlight: boolean;
 }
 
-interface TelegramVipStatusCacheLookup {
-  status: TelegramMeResponse | null;
-  isFresh: boolean;
+interface TelegramPricingPlanDefault {
+  key: TelegramPricingPlanKey;
+  name: string;
+  priceLabel: string;
+  periodLabel: string;
+  features: string[];
+  isHighlight: boolean;
 }
 
-const telegramVipStatusMemoryCache = new Map<string, TelegramVipStatusCachePayload>();
+const TELEGRAM_PLAN_DEFAULTS: TelegramPricingPlanDefault[] = [
+  {
+    key: 'mensual',
+    name: 'Plan Mensual',
+    priceLabel: '15€',
+    periodLabel: '/mes',
+    features: ['Picks diarios en Telegram', 'Gestion de stake recomendada', 'Acceso inmediato al grupo'],
+    isHighlight: true,
+  },
+  {
+    key: 'trimestral',
+    name: 'Plan Trimestral',
+    priceLabel: '39€',
+    periodLabel: '/3 meses',
+    features: ['Ahorro frente al mensual', 'Misma estrategia y flujo diario', 'Seguimiento continuo de resultados'],
+    isHighlight: false,
+  },
+  {
+    key: 'anual',
+    name: 'Plan Anual',
+    priceLabel: '129€',
+    periodLabel: '/12 meses',
+    features: ['Mejor precio por mes', 'Acceso completo todo el ano', 'Prioridad en nuevas mejoras'],
+    isHighlight: false,
+  },
+];
 
-const getTelegramVipStatusCacheKey = (backendUrl: string, sessionKey: string) =>
-  `${TELEGRAM_VIP_STATUS_CACHE_KEY_PREFIX}:${backendUrl}:${sessionKey}`;
-
-const getLocalStorage = () => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
+const TELEGRAM_PLAN_PREFERRED_PRODUCT_IDS: Record<TelegramPricingPlanKey, number[]> = {
+  mensual: [7],
+  trimestral: [10],
+  anual: [11],
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
+const TELEGRAM_PRODUCT_KEYWORDS = ['telegram', 'grupo', 'vip', 'valuebet', 'valuebets', 'grupoapuestas'];
 
-const isValidTelegramVipStatus = (value: unknown): value is TelegramMeResponse => (
-  isRecord(value) && typeof value.activeSubscription === 'boolean'
+const TELEGRAM_PLAN_INTERVAL_KEYWORDS: Record<TelegramPricingPlanKey, string[]> = {
+  mensual: ['mensual', 'month', 'monthly', '1 mes', '1 month', '1m'],
+  trimestral: ['trimestral', 'trimestre', 'quarter', 'quarterly', '3 meses', '3 months', '3m'],
+  anual: ['anual', 'year', 'yearly', '12 meses', '12 months', '12m'],
+};
+
+const getPlanKeyByProductId = (productId: number | null): TelegramPricingPlanKey | null => {
+  if (productId === null) {
+    return null;
+  }
+
+  for (const [planKey, preferredIds] of Object.entries(TELEGRAM_PLAN_PREFERRED_PRODUCT_IDS) as Array<[TelegramPricingPlanKey, number[]]>) {
+    if (preferredIds.includes(productId)) {
+      return planKey;
+    }
+  }
+
+  return null;
+};
+
+const getActiveSubscriptionProductId = (status: TelegramMeResponse | null): number | null => {
+  if (!status?.activeSubscription) {
+    return null;
+  }
+
+  const subscriptionProductId = status.subscription?.productId ?? status.subscription?.product_id ?? null;
+  const rootProductId = status.productId ?? status.product_id ?? null;
+  const rawProductId = subscriptionProductId ?? rootProductId;
+
+  if (typeof rawProductId !== 'number' || !Number.isFinite(rawProductId)) {
+    return null;
+  }
+
+  return rawProductId;
+};
+
+const getActiveSubscriptionPlanKey = (status: TelegramMeResponse | null): TelegramPricingPlanKey | null => {
+  const activeSubscriptionProductId = getActiveSubscriptionProductId(status);
+  return getPlanKeyByProductId(activeSubscriptionProductId);
+};
+
+const normalizeSearchValue = (value: string) => (
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
 );
 
-const isValidTelegramVipStatusCachePayload = (
-  value: unknown,
-): value is TelegramVipStatusCachePayload => {
-  if (!isRecord(value)) {
-    return false;
-  }
+const getProductSearchText = (product: Product) =>
+  normalizeSearchValue(`${product.code} ${product.name}`);
 
-  return (
-    value.version === ROADMAP_CACHE_VERSION
-    && typeof value.savedAt === 'number'
-    && isValidTelegramVipStatus(value.status)
+const findPreferredProduct = (products: Product[], planKey: TelegramPricingPlanKey) => {
+  const preferredIds = TELEGRAM_PLAN_PREFERRED_PRODUCT_IDS[planKey];
+  return products.find((product) => preferredIds.includes(product.id)) ?? null;
+};
+
+const matchesAnyKeyword = (text: string, keywords: string[]) => (
+  keywords.some((keyword) => text.includes(keyword))
+);
+
+const buildTelegramPricingPlans = (products: Product[]): TelegramPricingPlan[] => {
+  const activeProducts = products.filter((product) => product.is_active);
+  const searchableProducts = activeProducts.map((product) => ({
+    product,
+    searchText: getProductSearchText(product),
+  }));
+
+  const telegramTaggedProducts = searchableProducts.filter(({ searchText }) =>
+    matchesAnyKeyword(searchText, TELEGRAM_PRODUCT_KEYWORDS),
   );
-};
+  const candidateProducts = telegramTaggedProducts.length > 0 ? telegramTaggedProducts : searchableProducts;
 
-const readTelegramVipStatusCache = (cacheKey: string): TelegramVipStatusCacheLookup => {
-  const now = Date.now();
-  const cachedInMemory = telegramVipStatusMemoryCache.get(cacheKey);
+  const fallbackProduct =
+    findPreferredProduct(activeProducts, 'mensual')
+    ?? candidateProducts[0]?.product
+    ?? activeProducts[0]
+    ?? null;
 
-  if (cachedInMemory) {
-    return {
-      status: cachedInMemory.status,
-      isFresh: now - cachedInMemory.savedAt <= ROADMAP_CACHE_TTL_MS,
-    };
-  }
+  return TELEGRAM_PLAN_DEFAULTS.map((planDefault) => {
+    const preferredProduct = findPreferredProduct(activeProducts, planDefault.key);
+    const keywordMatchedProduct = candidateProducts.find(({ searchText }) =>
+      matchesAnyKeyword(searchText, TELEGRAM_PLAN_INTERVAL_KEYWORDS[planDefault.key]),
+    )?.product ?? null;
 
-  const storage = getLocalStorage();
-
-  if (!storage) {
-    return {
-      status: null,
-      isFresh: false,
-    };
-  }
-
-  const rawValue = storage.getItem(cacheKey);
-
-  if (!rawValue) {
-    return {
-      status: null,
-      isFresh: false,
-    };
-  }
-
-  try {
-    const parsedValue: unknown = JSON.parse(rawValue);
-
-    if (!isValidTelegramVipStatusCachePayload(parsedValue)) {
-      storage.removeItem(cacheKey);
-      return {
-        status: null,
-        isFresh: false,
-      };
-    }
-
-    telegramVipStatusMemoryCache.set(cacheKey, parsedValue);
+    const planProduct = preferredProduct ?? keywordMatchedProduct ?? fallbackProduct;
 
     return {
-      status: parsedValue.status,
-      isFresh: now - parsedValue.savedAt <= ROADMAP_CACHE_TTL_MS,
+      ...planDefault,
+      productId: planProduct?.id ?? null,
+      isAvailable: Boolean(planProduct),
     };
-  } catch {
-    storage.removeItem(cacheKey);
-    return {
-      status: null,
-      isFresh: false,
-    };
-  }
-};
-
-const writeTelegramVipStatusCache = (cacheKey: string, status: TelegramMeResponse) => {
-  const payload: TelegramVipStatusCachePayload = {
-    version: ROADMAP_CACHE_VERSION,
-    savedAt: Date.now(),
-    status,
-  };
-
-  telegramVipStatusMemoryCache.set(cacheKey, payload);
-
-  const storage = getLocalStorage();
-
-  if (!storage) {
-    return;
-  }
-
-  try {
-    storage.setItem(cacheKey, JSON.stringify(payload));
-  } catch {
-    // Ignoramos errores de cuota o permisos de storage.
-  }
+  });
 };
 
 export const useGrupoApuestasLogic = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { authReady, isAuthenticated, session } = useAuthSession();
-  const { products, refreshDashboardCatalog } = useDashboardCatalog();
+  const {
+    products,
+    refreshDashboardCatalog,
+    isLoading: isDashboardCatalogLoading,
+  } = useDashboardCatalog();
   const [status, setStatus] = useState<TelegramMeResponse | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -224,22 +269,17 @@ export const useGrupoApuestasLogic = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOpeningBot, setIsOpeningBot] = useState(false);
-  const [isStartingSubscriptionCheckout, setIsStartingSubscriptionCheckout] = useState(false);
+  const [activeCheckoutPlanKey, setActiveCheckoutPlanKey] = useState<TelegramPricingPlanKey | null>(null);
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
+  const [isReactivatingSubscription, setIsReactivatingSubscription] = useState(false);
 
   const accessToken = session?.access_token ?? null;
-  const cacheKey = useMemo(
-    () => getTelegramVipStatusCacheKey(
-      getBackendApiBaseUrl(),
-      session?.user.id ?? TELEGRAM_VIP_STATUS_SESSION_KEY_ANON,
-    ),
-    [session?.user.id],
-  );
+  const sessionKey = session?.user.id ?? null;
 
   const loadStatus = useCallback(async (isManualRefresh = false) => {
     if (!accessToken) {
       setStatus(null);
-      setStatusError('No se ha encontrado una sesion valida para consultar Telegram VIP.');
+      setStatusError('No se ha encontrado una sesión valida para consultar Telegram VIP.');
       setIsLoading(false);
       setIsRefreshing(false);
       return;
@@ -252,26 +292,14 @@ export const useGrupoApuestasLogic = () => {
     }
 
     setStatusError(null);
-    let staleStatus: TelegramMeResponse | null = null;
 
     try {
-      const cachedLookup = readTelegramVipStatusCache(cacheKey);
-
-      if (cachedLookup.status && cachedLookup.isFresh && !isManualRefresh) {
-        setStatus(cachedLookup.status);
-        return;
-      }
-
-      staleStatus = cachedLookup.status;
-      const nextStatus = await fetchTelegramVipStatus(accessToken);
-      setStatus(nextStatus);
-      writeTelegramVipStatusCache(cacheKey, nextStatus);
+      const nextStatus = await loadTelegramVipStatus(accessToken, {
+        sessionKey,
+        forceRefresh: isManualRefresh,
+      });
+      setStatus(nextStatus.status);
     } catch (error) {
-      if (staleStatus) {
-        setStatus(staleStatus);
-        return;
-      }
-
       setStatusError(
         getFriendlyRequestErrorMessage(
           error,
@@ -282,7 +310,7 @@ export const useGrupoApuestasLogic = () => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [accessToken, cacheKey]);
+  }, [accessToken, sessionKey]);
 
   useEffect(() => {
     if (!authReady) {
@@ -291,7 +319,7 @@ export const useGrupoApuestasLogic = () => {
 
     if (!isAuthenticated) {
       setStatus(null);
-      setStatusError('Necesitas iniciar sesion para gestionar tu vinculacion con Telegram.');
+      setStatusError('Necesitas iniciar sesión para gestionar tu vinculacion con Telegram.');
       setIsLoading(false);
       return;
     }
@@ -299,71 +327,122 @@ export const useGrupoApuestasLogic = () => {
     void loadStatus();
   }, [authReady, isAuthenticated, loadStatus]);
 
-  const subscriptionProduct = useMemo(
-    () => products.find((product) => product.id === 7) ?? null,
+  const subscriptionPricingPlans = useMemo(
+    () => buildTelegramPricingPlans(products),
     [products],
   );
-
-  const subscriptionProductPriceLabel = useMemo(() => {
-    return subscriptionProduct ? formatPriceEur(subscriptionProduct.price_eur) : 'No disponible';
-  }, [subscriptionProduct]);
+  const isStartingSubscriptionCheckout = activeCheckoutPlanKey !== null;
+  const isPageLoading = isLoading || isDashboardCatalogLoading;
 
   const hasActiveSubscription = Boolean(status?.activeSubscription);
-  const subscriptionExpiresAtLabel = useMemo(() => {
-    if (!hasActiveSubscription) {
-      return null;
+  const activeSubscriptionPlanKey = useMemo(
+    () => getActiveSubscriptionPlanKey(status),
+    [status],
+  );
+  const isSubscriptionCancelAtPeriodEnd = Boolean(
+    status?.cancelAtPeriodEnd ?? status?.subscription?.cancelAtPeriodEnd ?? false,
+  );
+  const groupInfo = useMemo(() => getGroupInfoFromStatus(status), [status]);
+  const isGroupConfigured = groupInfo?.configured ?? false;
+  const groupMemberCountLabel = useMemo(() => {
+    if (groupInfo?.memberCount === null || groupInfo?.memberCount === undefined) {
+      return 'No disponible';
     }
 
-    return formatDateTime(
-      status?.subscriptionExpiresAt
-      ?? status?.entitlementEndsAt
-      ?? status?.endsAt
-      ?? status?.expiresAt
-      ?? null,
-    );
-  }, [hasActiveSubscription, status]);
+    return groupInfo.memberCount.toLocaleString('es-ES');
+  }, [groupInfo]);
+  const groupMemberCountUpdatedAtLabel = formatDateTime(groupInfo?.memberCountUpdatedAt ?? null);
+  const groupRecentActivityAtLabel = formatDateTime(groupInfo?.recentActivityAt ?? null);
   const isLinked = Boolean(status?.telegram);
   const hasJoinedGroup = status?.telegram?.inviteStatus === 'joined';
 
-  const handleSubscriptionAction = useCallback(async () => {
+  const handleCancelSubscription = useCallback(async () => {
     setActionError(null);
     setActionNotice(null);
 
-    if (hasActiveSubscription) {
-      setIsCancellingSubscription(true);
-
-      try {
-        await cancelSubscription();
-        setActionNotice('Suscripcion cancelada. Estamos actualizando el estado de tu acceso.');
-        refreshDashboardCatalog();
-        await loadStatus(true);
-      } catch (error) {
-        setActionError(
-          getFriendlyRequestErrorMessage(error, 'No se pudo cancelar la suscripcion.'),
-        );
-      } finally {
-        setIsCancellingSubscription(false);
-      }
-
+    if (!hasActiveSubscription) {
+      setActionError('No hay una suscripcion activa para cancelar en este momento.');
       return;
     }
 
-    if (!subscriptionProduct) {
+    setIsCancellingSubscription(true);
+
+    try {
+      await cancelSubscription();
+      setActionNotice('Suscripcion cancelada. Estamos actualizando el estado de tu acceso.');
+      refreshDashboardCatalog();
+      await loadStatus(true);
+    } catch (error) {
+      setActionError(
+        getFriendlyRequestErrorMessage(error, 'No se pudo cancelar la suscripcion.'),
+      );
+    } finally {
+      setIsCancellingSubscription(false);
+    }
+  }, [hasActiveSubscription, loadStatus, refreshDashboardCatalog]);
+
+  const handleReactivateSubscription = useCallback(async () => {
+    setActionError(null);
+    setActionNotice(null);
+
+    if (!hasActiveSubscription) {
+      setActionError('No hay una suscripcion activa para reactivar en este momento.');
+      return;
+    }
+
+    if (!isSubscriptionCancelAtPeriodEnd) {
+      setActionNotice('Tu suscripcion ya esta activa y sin baja programada.');
+      return;
+    }
+
+    setIsReactivatingSubscription(true);
+
+    try {
+      await reactivateSubscription();
+      setActionNotice('Suscripcion reactivada. Estamos actualizando el estado de tu acceso.');
+      refreshDashboardCatalog();
+      await loadStatus(true);
+    } catch (error) {
+      setActionError(
+        getFriendlyRequestErrorMessage(error, 'No se pudo reactivar la suscripcion.'),
+      );
+    } finally {
+      setIsReactivatingSubscription(false);
+    }
+  }, [hasActiveSubscription, isSubscriptionCancelAtPeriodEnd, loadStatus, refreshDashboardCatalog]);
+
+  const handleStartSubscriptionCheckout = useCallback(async (planKey: TelegramPricingPlanKey) => {
+    if (hasActiveSubscription) {
+      setActionError('Ya tienes una suscripcion activa. Cancela la cuota actual para cambiar de plan.');
+      return;
+    }
+
+    setActionError(null);
+    setActionNotice(null);
+
+    const targetPlan = subscriptionPricingPlans.find((plan) => plan.key === planKey) ?? null;
+    const targetProductId = targetPlan?.productId ?? null;
+
+    if (!targetProductId) {
       setActionError('No hemos encontrado el producto de suscripcion para iniciar el checkout.');
       return;
     }
 
     const returnUrl = new URL('/dashboard/grupo-apuestas', window.location.origin);
     returnUrl.searchParams.set('checkout', 'success');
+    returnUrl.searchParams.set('plan', planKey);
+    returnUrl.searchParams.set('productId', String(targetProductId));
 
     const cancelUrl = new URL('/dashboard/grupo-apuestas', window.location.origin);
     cancelUrl.searchParams.set('checkout', 'cancel');
+    cancelUrl.searchParams.set('plan', planKey);
+    cancelUrl.searchParams.set('productId', String(targetProductId));
 
-    setIsStartingSubscriptionCheckout(true);
+    setActiveCheckoutPlanKey(planKey);
 
     try {
       const checkoutUrl = await createCheckoutSession({
-        productId: subscriptionProduct.id,
+        productId: targetProductId,
         successUrl: returnUrl.toString(),
         cancelUrl: cancelUrl.toString(),
       });
@@ -375,9 +454,9 @@ export const useGrupoApuestasLogic = () => {
           ? error.message
           : 'No se pudo iniciar el checkout de la suscripcion.',
       );
-      setIsStartingSubscriptionCheckout(false);
+      setActiveCheckoutPlanKey(null);
     }
-  }, [hasActiveSubscription, loadStatus, refreshDashboardCatalog, subscriptionProduct]);
+  }, [hasActiveSubscription, subscriptionPricingPlans]);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -389,13 +468,13 @@ export const useGrupoApuestasLogic = () => {
 
     if (checkoutState === 'cancel') {
       setActionNotice('Compra cancelada. Puedes volver a intentarlo cuando quieras.');
-      setIsStartingSubscriptionCheckout(false);
+      setActiveCheckoutPlanKey(null);
       navigate('/dashboard/grupo-apuestas', { replace: true });
       return;
     }
 
     setActionNotice('Pago recibido. Actualizando el estado de tu suscripcion...');
-    setIsStartingSubscriptionCheckout(false);
+    setActiveCheckoutPlanKey(null);
     refreshDashboardCatalog();
     void loadStatus(true);
     navigate('/dashboard/grupo-apuestas', { replace: true });
@@ -403,7 +482,7 @@ export const useGrupoApuestasLogic = () => {
 
   const handleOpenBot = useCallback(async () => {
     if (!accessToken) {
-      setActionError('No se ha encontrado una sesion valida para abrir el bot.');
+      setActionError('No se ha encontrado una sesión valida para abrir el bot.');
       return;
     }
 
@@ -446,6 +525,7 @@ export const useGrupoApuestasLogic = () => {
   const primaryMessage = useMemo(() => getPrimaryMessage(status), [status]);
 
   return {
+    isPageLoading,
     isLoading,
     isRefreshing,
     isOpeningBot,
@@ -461,24 +541,32 @@ export const useGrupoApuestasLogic = () => {
       : 'No conectado',
     inviteStatusLabel: getInviteStatusLabel(status?.telegram?.inviteStatus ?? null),
     activeSubscriptionLabel: status?.activeSubscription ? 'Activa' : 'Inactiva',
-    subscriptionProductName: subscriptionProduct?.name ?? 'Suscripcion Telegram',
-    subscriptionProductPriceLabel,
-    subscriptionExpiresAtLabel,
+    subscriptionPricingPlans,
+    activeCheckoutPlanKey,
+    isGroupConfigured,
+    groupMemberCountLabel,
+    groupMemberCountUpdatedAtLabel,
+    groupRecentActivityAtLabel,
     linkedAtLabel: formatDateTime(status?.telegram?.linkedAt ?? null),
     botUsernameLabel: status?.bot.botUsername ? `@${status.bot.botUsername}` : 'No disponible',
     isBotConfigured: status?.bot.configured ?? false,
     isLinked,
     hasActiveSubscription,
+    activeSubscriptionPlanKey,
+    isSubscriptionCancelAtPeriodEnd,
     hasJoinedGroup,
     isStartingSubscriptionCheckout,
     isCancellingSubscription,
+    isReactivatingSubscription,
     shouldShowPendingNotice:
       status?.telegram?.inviteStatus === 'invited'
       || status?.telegram?.inviteStatus === 'blocked_bot',
     shouldShowInactiveAccessNotice:
       status?.telegram?.inviteStatus === 'removed'
       || status?.telegram?.inviteStatus === 'left',
-    handleSubscriptionAction,
+    handleCancelSubscription,
+    handleReactivateSubscription,
+    handleStartSubscriptionCheckout,
     handleRetryLoad: () => void loadStatus(true),
     handleOpenBot,
   };

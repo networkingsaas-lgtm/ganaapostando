@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react';
 import PageReveal from '../shared/components/PageReveal';
-import { TrendingUp, BarChart2, DollarSign, ArrowLeft, Building2 } from 'lucide-react';
+import { TrendingUp, BarChart2, DollarSign, Building2, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   LineChart,
   Line,
@@ -14,14 +15,15 @@ import type { TooltipContentProps, TooltipValueType } from 'recharts';
 
 import type { Usuario } from '../features/resultados/types';
 import { usuarios } from '../features/resultados/data';
+import CTASection from '../features/home/sections/CTASection';
 
 type EjeX = 'tiempo' | 'apuestas';
 interface Props {
-  onVolver: () => void;
   onVerPricing: () => void;
 }
 
-export default function Resultados({ onVolver, onVerPricing }: Props) {
+export default function Resultados({ onVerPricing }: Props) {
+  const navigate = useNavigate();
   const [seleccionado, setSeleccionado] = useState<Usuario>(usuarios[0]);
   const [ejeX, setEjeX] = useState<EjeX>('tiempo');
   const [panelAbierto, setPanelAbierto] = useState(true);
@@ -84,7 +86,7 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
       <PageReveal
         direction="down"
         delay={30}
-        className="hero-startup-bg relative overflow-hidden text-white py-10 sm:py-16 section-padding"
+        className="hero-startup-bg relative overflow-hidden text-white py-10 pt-28 sm:py-16 sm:pt-32 section-padding"
       >
         <div
           className="pointer-events-none absolute inset-0 bg-center bg-cover opacity-[0.20]"
@@ -97,10 +99,18 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
 
         <div className="relative z-10 max-w-7xl mx-auto">
           <button
-            onClick={onVolver}
-            className="flex items-center gap-2 text-blue-300 hover:text-white transition-colors mb-8 text-sm"
+            type="button"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+                return;
+              }
+
+              navigate('/');
+            }}
+            className="mb-8 flex items-center gap-2 text-sm text-blue-300 transition-colors hover:text-white"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="h-4 w-4" />
             Volver
           </button>
 
@@ -320,6 +330,18 @@ export default function Resultados({ onVolver, onVerPricing }: Props) {
           </div>
         </div>
       </PageReveal>
+
+      <div className="section-padding">
+        <div className="mx-auto max-w-7xl border-t border-slate-200" />
+      </div>
+
+      <CTASection
+        onVerResultados={() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onComenzarAhora={onVerPricing}
+        hideVerResultadosButton
+      />
     </div>
   );
 }

@@ -18,13 +18,41 @@ export interface TelegramBotStatus {
   botUsername: string | null;
 }
 
-export interface TelegramMeResponse {
-  userId: string;
-  activeSubscription: boolean;
+export interface TelegramGroupInfo {
+  configured: boolean;
+  memberCount: number | null;
+  memberCountUpdatedAt: string | null;
+  recentActivityAt: string | null;
+}
+
+export interface TelegramSubscriptionInfo {
+  status?: string | null;
+  productId?: number | null;
+  product_id?: number | null;
+  cancelAtPeriodEnd?: boolean | null;
+  currentPeriodEnd?: string | null;
   expiresAt?: string | null;
   endsAt?: string | null;
   subscriptionExpiresAt?: string | null;
   entitlementEndsAt?: string | null;
+}
+
+export interface TelegramMeResponse {
+  userId: string;
+  activeSubscription: boolean;
+  productId?: number | null;
+  product_id?: number | null;
+  subscriptionStatus?: string | null;
+  cancelAtPeriodEnd?: boolean | null;
+  currentPeriodEnd?: string | null;
+  expiresAt?: string | null;
+  endsAt?: string | null;
+  subscriptionExpiresAt?: string | null;
+  entitlementEndsAt?: string | null;
+  subscription?: TelegramSubscriptionInfo | null;
+  group?: TelegramGroupInfo | null;
+  groupMemberCount?: number | null;
+  recentActivityAt?: string | null;
   telegram: TelegramLinkedAccount | null;
   bot: TelegramBotStatus;
 }

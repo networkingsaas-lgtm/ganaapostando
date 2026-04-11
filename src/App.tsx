@@ -6,8 +6,11 @@ import MetodoStatsSection from './features/home/sections/MetodoStatsSection';
 import EstudianteSection from './features/home/sections/EstudianteSection';
 import PricingSection from './features/home/sections/PricingSection';
 import CTASection from './features/home/sections/CTASection';
+import GrupoApuestasLandingPage from './features/cara-b/CaraBLandingPage';
 import Resultados from './pages/Resultados';
-import RouteSwiper from './shared/components/RouteSwiper';
+import PublicTopBar from './shared/components/PublicTopBar';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
 import {
   signOutFromSession,
 } from './api/services/sessionService';
@@ -18,35 +21,24 @@ const preloadRegistroPage = () => import('./pages/Registro');
 const PortalLayout = lazy(() => import('./pages/PortalLayout'));
 const Registro = lazy(preloadRegistroPage);
 
-type AppRoute = '/' | '/resultados' | '/dashboard' | '/registro';
+type AppRoute =
+  | '/'
+  | '/grupoapuestas'
+  | '/resultados'
+  | '/dashboard'
+  | '/registro'
+  | '/terminos-del-servicio'
+  | '/politica-de-privacidad';
 
 interface RouteState {
   scrollToPricing?: boolean;
 }
 
-const REGISTRO_SWIPE_DURATION_MS = 520;
 const routeFallback = (
   <div className="flex min-h-screen w-full items-center justify-center bg-[linear-gradient(180deg,#f2f2f7_0%,#eef1f6_100%)]">
     <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-300 border-t-slate-600" />
   </div>
 );
-
-const getAppRoute = (pathname: string): AppRoute | null => {
-  if (pathname === '/' || pathname === '/resultados' || pathname === '/registro') {
-    return pathname;
-  }
-
-  if (
-    pathname === '/dashboard'
-    || pathname.startsWith('/dashboard/')
-    || pathname === '/mapa'
-    || pathname.startsWith('/mapa/')
-  ) {
-    return '/dashboard';
-  }
-
-  return null;
-};
 
 const getDashboardAliasPath = (pathname: string) => (
   pathname === '/mapa' ? '/dashboard/mapa' : pathname.replace(/^\/mapa/, '/dashboard')
@@ -54,12 +46,10 @@ const getDashboardAliasPath = (pathname: string) => (
 
 function LandingPage({
   flashButtonsKey,
-  onLoginSuccess,
   onVerResultados,
   onRegistrarse,
 }: {
   flashButtonsKey: number;
-  onLoginSuccess: () => void;
   onVerResultados: () => void;
   onRegistrarse: () => void;
 }) {
@@ -87,9 +77,7 @@ function LandingPage({
       style={{ fontFamily: "'Sora', sans-serif" }}
     >
       <HeroSection
-        onLoginSuccess={onLoginSuccess}
         onVerResultados={onVerResultados}
-        onRegistrarse={onRegistrarse}
       />
       <EstudianteSection />
       <MetodoStatsSection onVerResultados={onVerResultados} />
@@ -133,14 +121,16 @@ function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
   const { authReady, isAuthenticated } = useAuthSession();
-  const resolvedRoute = getAppRoute(location.pathname);
-  const currentRoute: AppRoute = resolvedRoute ?? '/';
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.key]);
 
   const handleLogout = async () => {
     try {
       await signOutFromSession();
     } catch (error) {
-      console.error('No se pudo cerrar sesion en Supabase.', error);
+      console.error('No se pudo cerrar sesión en Supabase.', error);
     } finally {
       navigate('/');
     }
@@ -148,93 +138,124 @@ function AppRoutes() {
 
   useEffect(() => {
     void preloadRegistroPage();
+
+    const imageHints: Array<{
+      id: string;
+      href: string;
+      rel: 'preload' | 'prefetch';
+    }> = [
+      { id: 'registro-bg', href: '/registro-bg.png', rel: 'prefetch' },
+      { id: 'grupoapuestas-logo', href: '/logo.png', rel: 'preload' },
+      { id: 'grupoapuestas-telegram-profile', href: '/telegramiconoperfil2.png', rel: 'preload' },
+    ];
+
+    imageHints.forEach(({ id, href, rel }) => {
+      const existingHint = document.head.querySelector(`link[data-app-image-hint="${id}"]`);
+
+      if (existingHint) {
+        return;
+      }
+
+      const imageHintLink = document.createElement('link');
+      imageHintLink.rel = rel;
+      imageHintLink.as = 'image';
+      imageHintLink.href = href;
+      imageHintLink.setAttribute('data-app-image-hint', id);
+      document.head.appendChild(imageHintLink);
+    });
   }, []);
 
+  const navigateBackOrHome = (fallbackRoute: AppRoute = '/') => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(fallbackRoute);
+  };
+
+  const renderPublicPage = (content: ReactElement) => (
+    <>
+      <PublicTopBar
+        onLoginSuccess={() => {
+          navigate('/dashboard/grupo-apuestas');
+        }}
+        onRegistrarse={() => navigate('/registro')}
+      />
+      {content}
+    </>
+  );
+
   return (
-    <RouteSwiper<AppRoute>
-      currentRoute={currentRoute}
-      onNavigate={(nextRoute) => navigate(nextRoute)}
-      transitions={[
-        {
-          from: '/',
-          to: '/registro',
-          leaveClass: 'route-swiper-leave-left',
-          enterClass: 'route-swiper-enter-right',
-          durationMs: REGISTRO_SWIPE_DURATION_MS,
-        },
-        {
-          from: '/registro',
-          to: '/',
-          leaveClass: 'route-swiper-leave-right',
-          enterClass: 'route-swiper-enter-left',
-          durationMs: REGISTRO_SWIPE_DURATION_MS,
-        },
-      ]}
-      renderRoute={(sceneRoute, goTo) => (
-        <Suspense fallback={routeFallback}>
-          <Routes location={sceneRoute === currentRoute ? location : sceneRoute}>
-            <Route
-              path="/"
-              element={
-                <LandingPage
-                  flashButtonsKey={flashButtonsKey}
-                  onLoginSuccess={() => {
-                    navigate('/dashboard/mapa');
-                  }}
-                  onVerResultados={() => navigate('/resultados')}
-                  onRegistrarse={() => goTo('/registro')}
-                />
-              }
+    <Suspense fallback={routeFallback}>
+      <Routes>
+        <Route
+          path="/"
+          element={renderPublicPage(
+            <LandingPage
+              flashButtonsKey={flashButtonsKey}
+              onVerResultados={() => navigate('/resultados')}
+              onRegistrarse={() => navigate('/registro')}
             />
-            <Route
-              path="/resultados"
-              element={
-                <Resultados
-                  onVolver={() => navigate('/')}
-                  onVerPricing={() => {
-                    setFlashButtonsKey((currentKey) => currentKey + 1);
-                    navigate('/', { state: { scrollToPricing: true } satisfies RouteState });
-                  }}
-                />
-              }
+          )}
+        />
+        <Route
+          path="/grupoapuestas"
+          element={renderPublicPage(
+            <GrupoApuestasLandingPage
+              onRegistrarse={() => navigate('/registro')}
+              onVerResultados={() => navigate('/resultados')}
             />
-            <Route
-              path="/dashboard/*"
-              element={(
-                <ProtectedRoute authReady={authReady} isAuthenticated={isAuthenticated}>
-                  <PortalLayout onVolver={() => { void handleLogout(); }} />
-                </ProtectedRoute>
-              )}
+          )}
+        />
+        <Route
+          path="/resultados"
+          element={renderPublicPage(
+            <Resultados
+              onVerPricing={() => {
+                setFlashButtonsKey((currentKey) => currentKey + 1);
+                navigate('/', { state: { scrollToPricing: true } satisfies RouteState });
+              }}
             />
-            <Route
-              path="/mapa/*"
-              element={(
-                <Navigate
-                  to={{
-                    pathname: getDashboardAliasPath(location.pathname),
-                    search: location.search,
-                    hash: location.hash,
-                  }}
-                  replace
-                />
-              )}
+          )}
+        />
+        <Route
+          path="/dashboard/*"
+          element={(
+            <ProtectedRoute authReady={authReady} isAuthenticated={isAuthenticated}>
+              <PortalLayout onVolver={() => { void handleLogout(); }} />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/mapa/*"
+          element={(
+            <Navigate
+              to={{
+                pathname: getDashboardAliasPath(location.pathname),
+                search: location.search,
+                hash: location.hash,
+              }}
+              replace
             />
-            <Route
-              path="/registro"
-              element={(
-                <Registro
-                  onVolver={() => goTo('/')}
-                  onRegistroExitoso={() => {
-                    navigate('/dashboard/ajustes');
-                  }}
-                />
-              )}
+          )}
+        />
+        <Route
+          path="/registro"
+          element={(
+            <Registro
+              onVolver={() => navigateBackOrHome('/')}
+              onRegistroExitoso={() => {
+                navigate('/dashboard/grupo-apuestas');
+              }}
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      )}
-    />
+          )}
+        />
+        <Route path="/terminos-del-servicio" element={renderPublicPage(<TermsOfServicePage />)} />
+        <Route path="/politica-de-privacidad" element={renderPublicPage(<PrivacyPolicyPage />)} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

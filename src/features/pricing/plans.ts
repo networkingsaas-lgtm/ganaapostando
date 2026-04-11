@@ -12,8 +12,6 @@ export const pricingPlans: PricingPlan[] = [
       'Cada nivel desbloquea una parte nueva del mismo método principal',
       'No es lineal: puedes elegir que información desbloquear primero',
       'Pagas sólo los bloques que quieras abrir en cada momento',
-      'Ideal si prefieres avanzar poco a poco en lugar de pagar todo de golpe',
-      'La ruta completa es la misma, solo cambia el formato de pago por capas',
       '❌ No se desbloquea todo el curso desde el inicio',
       '❌ Debes completar cada pago para pasar al siguiente nivel',
     ],
@@ -43,7 +41,7 @@ export const pricingPlans: PricingPlan[] = [
       'Estrategia de apuestas a largo plazo',
       'Errores más comunes y cómo evitarlos',
     ],
-    highlighted: true,
+    highlighted: false,
     recommended: false,
   },
   {
@@ -66,6 +64,6 @@ export const pricingPlans: PricingPlan[] = [
       'Liquidación por porcentaje exclusivamente sobre ganancias',
     ],
     highlighted: false,
-    recommended: true,
+    recommended: false,
   },
 ];

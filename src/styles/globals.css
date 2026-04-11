@@ -33,6 +33,10 @@
     radial-gradient(68% 74% at 8% 100%, rgba(28, 103, 222, 0.72) 0%, rgba(28, 103, 222, 0) 74%),
     radial-gradient(56% 64% at 100% 84%, rgba(92, 191, 255, 0.44) 0%, rgba(92, 191, 255, 0) 66%),
     linear-gradient(142deg, #2b68da 0%, #3d86e8 34%, #5caef7 66%, #8ad0ff 100%);
+
+  --grupoapuestas-hero-overlay:
+    radial-gradient(42% 52% at 86% 10%, rgba(166, 224, 255, 0.38) 0%, rgba(166, 224, 255, 0) 68%),
+    radial-gradient(58% 72% at 8% 90%, rgba(10, 126, 255, 0.22) 0%, rgba(10, 126, 255, 0) 70%);
 }
 
 .hero-impact-font {
@@ -88,6 +92,10 @@
 
 .hero-startup-bg-light {
   background: var(--hero-startup-bg-light);
+}
+
+.grupoapuestas-hero-overlay {
+  background: var(--grupoapuestas-hero-overlay);
 }
 
 .startup-fixed-bg {
@@ -296,42 +304,6 @@ html, body {
   }
 }
 
-@keyframes route-swiper-leave-left {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
-}
-
-@keyframes route-swiper-enter-right {
-  0% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(0);
-  }
-}
-
-@keyframes route-swiper-leave-right {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes route-swiper-enter-left {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(0);
-  }
-}
-
 @keyframes modal-fade-in {
   0% {
     opacity: 0;
@@ -400,26 +372,6 @@ html, body {
 
 .slide-in-left {
   animation: slide-in-left 0.75s cubic-bezier(0.22, 0.72, 0.14, 1) both;
-}
-
-.route-swiper-leave-left {
-  animation: route-swiper-leave-left 0.52s cubic-bezier(0.22, 0.72, 0.14, 1) both;
-  will-change: transform;
-}
-
-.route-swiper-enter-right {
-  animation: route-swiper-enter-right 0.52s cubic-bezier(0.22, 0.72, 0.14, 1) both;
-  will-change: transform;
-}
-
-.route-swiper-leave-right {
-  animation: route-swiper-leave-right 0.52s cubic-bezier(0.22, 0.72, 0.14, 1) both;
-  will-change: transform;
-}
-
-.route-swiper-enter-left {
-  animation: route-swiper-enter-left 0.52s cubic-bezier(0.22, 0.72, 0.14, 1) both;
-  will-change: transform;
 }
 
 .modal-fade-in {
@@ -660,10 +612,6 @@ nav[data-loupe-direction='left'] .sidebar-loupe-slider {
   .map-current-node,
   .map-route-line,
   .map-card-shine,
-  .route-swiper-leave-left,
-  .route-swiper-enter-right,
-  .route-swiper-leave-right,
-  .route-swiper-enter-left,
   .roadmap-skip-hint-right,
   .roadmap-skip-hint-left,
   .rebel-underline-lg::after {

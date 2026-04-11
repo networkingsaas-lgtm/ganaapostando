@@ -28,7 +28,7 @@ const INITIAL_FORM: RegisterFormState = {
   password: '',
 };
 
-const OAUTH_REDIRECT_PATH = '/dashboard/ajustes';
+const OAUTH_REDIRECT_PATH = '/dashboard/grupo-apuestas';
 
 function GoogleIcon() {
   return (

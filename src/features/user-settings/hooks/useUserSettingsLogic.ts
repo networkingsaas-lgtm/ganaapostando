@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { createCheckoutSession } from '../../../api/services/paymentsService';
+import {
+  cancelSubscription,
+  createCheckoutSession,
+  reactivateSubscription,
+} from '../../../api/services/paymentsService';
+import { getFriendlyRequestErrorMessage } from '../../../api/core/backendClient';
 import { pollLessonAccessActivation } from '../../../api/services/userAccessService';
 import { useDashboardCatalog } from '../../portal-shell/context/DashboardCatalogContext';
 import { getAuthenticatedUserLabel } from '../../portal-shell/utils';
@@ -8,6 +13,8 @@ import type { LayerSection } from '../../roadmap/types';
 import { formatPriceEur } from '../../roadmap/utils';
 import { pricingPlans } from '../../pricing/plans';
 import { useAuthSession } from '../../../shared/auth/AuthSessionContext';
+import { loadTelegramVipStatus } from '../../grupo-apuestas/services/telegramVipService';
+import type { TelegramMeResponse } from '../../grupo-apuestas/types';
 
 interface SettingsRouteState {
   focusLayerId?: number;
@@ -24,6 +31,17 @@ const lessonHasPaidAccess = (reason: string | null | undefined, canAccess: boole
 interface CheckoutTarget {
   productId: number;
   lessonId: number;
+}
+
+export interface ManagedPlanEntry {
+  id: string;
+  planName: string;
+  planType: 'Compra' | 'Suscripcion';
+  statusLabel: string;
+  activatedAtLabel: string;
+  endsAtLabel: string;
+  canCancel: boolean;
+  canReactivate: boolean;
 }
 
 const parsePositiveInteger = (value: string | null) => {
@@ -126,6 +144,95 @@ const getLatestDateValue = (values: Array<string | null | undefined>) => {
   return latestValue;
 };
 
+const getEarliestDateValue = (values: Array<string | null | undefined>) => {
+  let earliestValue: string | null = null;
+  let earliestTime = Number.POSITIVE_INFINITY;
+
+  for (const value of values) {
+    if (!value) {
+      continue;
+    }
+
+    const parsedTime = Date.parse(value);
+
+    if (!Number.isFinite(parsedTime) || parsedTime >= earliestTime) {
+      continue;
+    }
+
+    earliestValue = value;
+    earliestTime = parsedTime;
+  }
+
+  return earliestValue;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null
+);
+
+const getDateByPriorityKeys = (source: unknown, keys: string[]) => {
+  if (!isRecord(source)) {
+    return null;
+  }
+
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+
+  return null;
+};
+
+const getTelegramSubscriptionStartDate = (status: TelegramMeResponse | null) => {
+  if (!status) {
+    return null;
+  }
+
+  return (
+    getDateByPriorityKeys(status.subscription, [
+      'startsAt',
+      'startAt',
+      'startedAt',
+      'activatedAt',
+      'currentPeriodStart',
+      'periodStart',
+    ])
+    ?? getDateByPriorityKeys(status, [
+      'startsAt',
+      'startAt',
+      'startedAt',
+      'activatedAt',
+      'currentPeriodStart',
+      'periodStart',
+    ])
+    ?? null
+  );
+};
+
+const getTelegramSubscriptionEndDate = (status: TelegramMeResponse | null) => {
+  if (!status) {
+    return null;
+  }
+
+  return (
+    status.subscriptionExpiresAt
+    ?? status.entitlementEndsAt
+    ?? status.endsAt
+    ?? status.expiresAt
+    ?? status.currentPeriodEnd
+    ?? status.subscription?.subscriptionExpiresAt
+    ?? status.subscription?.entitlementEndsAt
+    ?? status.subscription?.endsAt
+    ?? status.subscription?.expiresAt
+    ?? status.subscription?.currentPeriodEnd
+    ?? getDateByPriorityKeys(status.subscription, ['endsAt', 'endAt', 'periodEnd'])
+    ?? getDateByPriorityKeys(status, ['endsAt', 'endAt', 'periodEnd'])
+    ?? null
+  );
+};
+
 const easeInOutCubic = (value: number) => (
   value < 0.5
     ? 4 * value * value * value
@@ -192,10 +299,18 @@ const getBillingDeckLayout = () => {
 export const useUserSettingsLogic = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { authUser, authReady } = useAuthSession();
+  const { authUser, authReady, session } = useAuthSession();
+  const accessToken = session?.access_token ?? null;
+  const sessionKey = session?.user.id ?? null;
   const isUserLoading = !authReady;
   const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
   const [checkoutNoticeTone, setCheckoutNoticeTone] = useState<'info' | 'success' | 'error'>('info');
+  const [managedPlansError, setManagedPlansError] = useState<string | null>(null);
+  const [managedPlansNotice, setManagedPlansNotice] = useState<string | null>(null);
+  const [isManagedPlansLoading, setIsManagedPlansLoading] = useState(false);
+  const [isCancellingManagedSubscription, setIsCancellingManagedSubscription] = useState(false);
+  const [isReactivatingManagedSubscription, setIsReactivatingManagedSubscription] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState<TelegramMeResponse | null>(null);
   const [isStartingCheckoutByLayerId, setIsStartingCheckoutByLayerId] = useState<number | null>(null);
   const [isStartingMethodCheckout, setIsStartingMethodCheckout] = useState(false);
   const [activeBillingCard, setActiveBillingCard] = useState<number | null>(null);
@@ -214,6 +329,36 @@ export const useUserSettingsLogic = () => {
   } = useDashboardCatalog();
   const handledSettingsLocationKeyRef = useRef<string | null>(null);
   const billingSelectorTimeoutRef = useRef<number | null>(null);
+
+  const loadTelegramStatus = useCallback(async (forceRefresh = false) => {
+    if (!accessToken) {
+      setTelegramStatus(null);
+      setManagedPlansError(null);
+      setIsManagedPlansLoading(false);
+      return;
+    }
+
+    setIsManagedPlansLoading(true);
+
+    try {
+      const nextStatus = await loadTelegramVipStatus(accessToken, {
+        sessionKey,
+        forceRefresh,
+      });
+      setTelegramStatus(nextStatus.status);
+      setManagedPlansError(null);
+    } catch (error) {
+      setTelegramStatus(null);
+      setManagedPlansError(
+        getFriendlyRequestErrorMessage(
+          error,
+          'No se pudo cargar el estado de suscripciones de Telegram.',
+        ),
+      );
+    } finally {
+      setIsManagedPlansLoading(false);
+    }
+  }, [accessToken, sessionKey]);
 
   useEffect(() => {
     const syncBillingDeckLayout = () => {
@@ -236,6 +381,14 @@ export const useUserSettingsLogic = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
+    void loadTelegramStatus();
+  }, [authReady, loadTelegramStatus]);
 
   const userLabel = useMemo(() => getAuthenticatedUserLabel(authUser), [authUser]);
   const purchasedLayersCount = useMemo(
@@ -330,6 +483,103 @@ export const useUserSettingsLogic = () => {
 
     return `${layerPricingPlan?.price ?? '13.25'} €`;
   }, [billingLayerCards, layerPricingPlan?.price]);
+  const hasActiveTelegramSubscription = useMemo(
+    () => Boolean(
+      telegramStatus?.activeSubscription
+      || telegramStatus?.subscriptionStatus === 'active'
+      || telegramStatus?.subscription?.status === 'active'
+      || telegramStatus?.cancelAtPeriodEnd
+      || telegramStatus?.subscription?.cancelAtPeriodEnd,
+    ),
+    [telegramStatus],
+  );
+  const hasTelegramCancelAtPeriodEnd = Boolean(
+    telegramStatus?.cancelAtPeriodEnd ?? telegramStatus?.subscription?.cancelAtPeriodEnd ?? false,
+  );
+  const canCancelTelegramSubscription = hasActiveTelegramSubscription && !hasTelegramCancelAtPeriodEnd;
+  const managedPlans = useMemo<ManagedPlanEntry[]>(() => {
+    const rows: ManagedPlanEntry[] = [];
+
+    if (hasActiveTelegramSubscription) {
+      rows.push({
+        id: 'telegram-subscription',
+        planName: 'Grupo Telegram VIP',
+        planType: 'Suscripcion',
+        statusLabel: hasTelegramCancelAtPeriodEnd ? 'Activa (renovacion cancelada)' : 'Activa',
+        activatedAtLabel: formatDateTime(getTelegramSubscriptionStartDate(telegramStatus)),
+        endsAtLabel: formatDateTime(getTelegramSubscriptionEndDate(telegramStatus)),
+        canCancel: canCancelTelegramSubscription,
+        canReactivate: hasTelegramCancelAtPeriodEnd,
+      });
+    }
+
+    if (isMethodPurchased) {
+      const methodPurchasedLessons = layers.flatMap((section) =>
+        section.lessons.filter(
+          (lessonNode) =>
+            lessonNode.products.some((product) => product.id === 6)
+            && lessonHasPaidAccess(lessonNode.reason, lessonNode.access?.canAccess)
+            && lessonNode.access?.entitlement?.product_id === 6,
+        ),
+      );
+      const methodActivatedAt = getEarliestDateValue(
+        methodPurchasedLessons.map((lessonNode) => lessonNode.access?.entitlement?.starts_at ?? null),
+      );
+      const methodEndsAt = getLatestDateValue(
+        methodPurchasedLessons.map((lessonNode) => lessonNode.access?.entitlement?.ends_at ?? null),
+      );
+
+      rows.push({
+        id: 'metodo-unico',
+        planName: 'El Metodo (pago unico)',
+        planType: 'Compra',
+        statusLabel: 'Compra activa',
+        activatedAtLabel: formatDateTime(methodActivatedAt),
+        endsAtLabel: formatDateTime(methodEndsAt),
+        canCancel: false,
+        canReactivate: false,
+      });
+    }
+
+    for (const section of layers) {
+      const paidLessons = section.lessons.filter((lessonNode) =>
+        lessonHasPaidAccess(lessonNode.reason, lessonNode.access?.canAccess)
+        && typeof lessonNode.access?.entitlement?.product_id === 'number'
+        && lessonNode.access?.entitlement?.product_id !== 6,
+      );
+
+      if (paidLessons.length === 0) {
+        continue;
+      }
+
+      const activatedAt = getEarliestDateValue(
+        paidLessons.map((lessonNode) => lessonNode.access?.entitlement?.starts_at ?? null),
+      );
+      const endsAt = getLatestDateValue(
+        paidLessons.map((lessonNode) => lessonNode.access?.entitlement?.ends_at ?? null),
+      );
+
+      rows.push({
+        id: `layer-${section.layer.id}`,
+        planName: `Capa ${section.layer.position}: ${section.layer.title}`,
+        planType: 'Compra',
+        statusLabel: 'Compra activa',
+        activatedAtLabel: formatDateTime(activatedAt),
+        endsAtLabel: formatDateTime(endsAt),
+        canCancel: false,
+        canReactivate: false,
+      });
+    }
+
+    return rows;
+  }, [
+    canCancelTelegramSubscription,
+    hasActiveTelegramSubscription,
+    hasTelegramCancelAtPeriodEnd,
+    isMethodPurchased,
+    layers,
+    telegramStatus,
+  ]);
   const getCandidateLessonIdsForProduct = useCallback((productId: number, fallbackLessonId: number) => {
     const lessonIds = new Set<number>([fallbackLessonId]);
 
@@ -357,6 +607,60 @@ export const useUserSettingsLogic = () => {
 
     window.location.assign(checkoutUrl);
   }, []);
+
+  const handleCancelManagedSubscription = useCallback(async () => {
+    setManagedPlansError(null);
+    setManagedPlansNotice(null);
+
+    if (!canCancelTelegramSubscription) {
+      setManagedPlansNotice('No hay una suscripcion activa cancelable en este momento.');
+      return;
+    }
+
+    setIsCancellingManagedSubscription(true);
+
+    try {
+      await cancelSubscription();
+      setManagedPlansNotice('Suscripcion cancelada correctamente.');
+      refreshDashboardCatalog();
+      await loadTelegramStatus(true);
+    } catch (error) {
+      setManagedPlansError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo cancelar la suscripcion en este momento.',
+      );
+    } finally {
+      setIsCancellingManagedSubscription(false);
+    }
+  }, [canCancelTelegramSubscription, loadTelegramStatus, refreshDashboardCatalog]);
+
+  const handleReactivateManagedSubscription = useCallback(async () => {
+    setManagedPlansError(null);
+    setManagedPlansNotice(null);
+
+    if (!hasTelegramCancelAtPeriodEnd) {
+      setManagedPlansNotice('No hay una suscripcion pendiente de baja para reactivar.');
+      return;
+    }
+
+    setIsReactivatingManagedSubscription(true);
+
+    try {
+      await reactivateSubscription();
+      setManagedPlansNotice('Suscripcion reactivada correctamente.');
+      refreshDashboardCatalog();
+      await loadTelegramStatus(true);
+    } catch (error) {
+      setManagedPlansError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo reactivar la suscripcion en este momento.',
+      );
+    } finally {
+      setIsReactivatingManagedSubscription(false);
+    }
+  }, [hasTelegramCancelAtPeriodEnd, loadTelegramStatus, refreshDashboardCatalog]);
 
   const handleGoToBilling = useCallback(() => {
     const billingSection = document.getElementById('billing-capas');
@@ -485,6 +789,7 @@ export const useUserSettingsLogic = () => {
       setCheckoutNotice('Pago recibido. Estamos actualizando tus accesos.');
       setCheckoutNoticeTone('info');
       refreshDashboardCatalog();
+      void loadTelegramStatus(true);
       navigate('/dashboard/ajustes', { replace: true });
       return;
     }
@@ -515,11 +820,11 @@ export const useUserSettingsLogic = () => {
           setCheckoutNotice('Acceso activado correctamente.');
           setCheckoutNoticeTone('success');
           refreshDashboardCatalog();
+          void loadTelegramStatus(true);
           navigate('/dashboard/mapa', {
             replace: true,
             state: {
               focusLessonId: matchedLessonId,
-              forceRoadmapRefresh: true,
             },
           });
           return;
@@ -537,6 +842,7 @@ export const useUserSettingsLogic = () => {
       setCheckoutNotice('El pago se registró, pero el acceso tarda más de lo normal. Recarga en unos segundos.');
       setCheckoutNoticeTone('error');
       refreshDashboardCatalog();
+      void loadTelegramStatus(true);
       navigate('/dashboard/ajustes', { replace: true });
     };
 
@@ -545,7 +851,7 @@ export const useUserSettingsLogic = () => {
     return () => {
       controller.abort();
     };
-  }, [authUser, getCandidateLessonIdsForProduct, location.search, navigate, refreshDashboardCatalog]);
+  }, [authUser, getCandidateLessonIdsForProduct, loadTelegramStatus, location.search, navigate, refreshDashboardCatalog]);
 
   useEffect(() => {
     if (handledSettingsLocationKeyRef.current === location.key) {
@@ -607,6 +913,14 @@ export const useUserSettingsLogic = () => {
     lastSignInAtLabel: formatDateTime(authUser?.last_sign_in_at ?? null),
     createdAtLabel: formatDateTime(authUser?.created_at ?? null),
     handleGoToBilling,
+    managedPlans,
+    managedPlansError,
+    managedPlansNotice,
+    isManagedPlansLoading,
+    isCancellingManagedSubscription,
+    isReactivatingManagedSubscription,
+    handleCancelManagedSubscription,
+    handleReactivateManagedSubscription,
     checkoutNotice,
     checkoutNoticeTone,
     showLayerBillingCards,

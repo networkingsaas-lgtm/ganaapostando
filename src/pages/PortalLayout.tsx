@@ -162,9 +162,9 @@ export default function PortalLayout({ onVolver }: Props) {
         showCloseButton={false}
         panelClassName="bg-white/95"
       >
-        <h3 className="text-center text-2xl font-bold">Cerrar sesion</h3>
+        <h3 className="text-center text-2xl font-bold">Cerrar sesión</h3>
         <p className="mt-3 text-center text-sm text-slate-600">
-          Vas a salir de tu sesion actual. Quieres continuar?
+          Vas a salir de tu sesión actual. Quieres continuar?
         </p>
 
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -182,7 +182,7 @@ export default function PortalLayout({ onVolver }: Props) {
             disabled={logoutSubmitting}
             className="rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-400"
           >
-            {logoutSubmitting ? 'Cerrando...' : 'Si, cerrar sesion'}
+            {logoutSubmitting ? 'Cerrando...' : 'Si, cerrar sesión'}
           </button>
         </div>
       </AppModal>
