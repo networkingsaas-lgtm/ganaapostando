@@ -1,10 +1,5 @@
-import {
-  ArrowRight,
-  Check,
-  Flame,
-  Send,
-  TrendingUp,
-} from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, Check, Flame, Target, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PageReveal from '../../shared/components/PageReveal';
 import ScrollReveal from '../../shared/components/ScrollReveal';
@@ -14,58 +9,119 @@ interface Props {
   onVerResultados: () => void;
 }
 
-const instructionsToFollow = [
-  {
-    title: 'Suscríbete por 15€',
-    icon: Send,
-  },
-  {
-    title: 'Apuesta 10€ por apuesta',
-    icon: Flame,
-  },
-  {
-    title: 'Gana dinero cada mes',
-    icon: TrendingUp,
-  },
-];
-
 const pricingPlans = [
   {
     name: 'Plan Mensual',
-    price: '15€',
+    price: '15 EUR',
     period: '/mes',
     highlight: true,
     features: ['Picks diarios en Telegram', 'Gestión de stake recomendada', 'Acceso inmediato al grupo'],
   },
   {
     name: 'Plan Trimestral',
-    price: '39€',
+    price: '39 EUR',
     period: '/3 meses',
     highlight: false,
     features: ['Ahorro frente al mensual', 'Misma estrategia y flujo diario', 'Seguimiento continuo de resultados'],
   },
   {
     name: 'Plan Anual',
-    price: '129€',
+    price: '129 EUR',
     period: '/12 meses',
     highlight: false,
     features: ['Mejor precio por mes', 'Acceso completo todo el año', 'Prioridad en nuevas mejoras'],
   },
 ];
 
+const formatMoney = (amount: number) =>
+  new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 2,
+  }).format(amount);
+
+const formatNumber = (amount: number) =>
+  new Intl.NumberFormat('es-ES', {
+    maximumFractionDigits: 2,
+  }).format(amount);
+
+const parseNumericInput = (value: string) => {
+  const normalized = value.replace(',', '.').trim();
+
+  if (normalized === '') {
+    return 0;
+  }
+
+  const parsed = Number(normalized);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 export default function GrupoApuestasLandingPage({
   onRegistrarse,
   onVerResultados,
 }: Props) {
+  const [bankValue, setBankValue] = useState('300');
+  const [cuotaValue, setCuotaValue] = useState('2.10');
+  const [evValue, setEvValue] = useState('6.5');
+  const [kellyValue, setKellyValue] = useState('0.5');
+  const [marketLimitValue, setMarketLimitValue] = useState('10');
+
+  const bank = parseNumericInput(bankValue);
+  const cuotaDecimal = parseNumericInput(cuotaValue);
+  const evPercent = parseNumericInput(evValue);
+  const kellyFactor = parseNumericInput(kellyValue);
+  const marketLimit = parseNumericInput(marketLimitValue);
+  const evDecimal = evPercent / 100;
+  const rawStake = cuotaDecimal > 1 ? bank * (evDecimal / (cuotaDecimal - 1)) * kellyFactor : 0;
+  const stakeFinal = Math.min(Math.max(rawStake, 0), marketLimit);
+  const stakePercent = bank > 0 ? (stakeFinal / bank) * 100 : 0;
+  const calculatorFields = [
+    {
+      label: 'Bank',
+      helper: 'Saldo disponible para la apuesta.',
+      value: bankValue,
+      onChange: setBankValue,
+      prefix: 'EUR',
+      placeholder: '300',
+    },
+    {
+      label: 'Cuota decimal',
+      helper: 'La cuota de la apuesta en formato decimal.',
+      value: cuotaValue,
+      onChange: setCuotaValue,
+      placeholder: '2.10',
+    },
+    {
+      label: 'EV %',
+      helper: 'Tu porcentaje de valor esperado.',
+      value: evValue,
+      onChange: setEvValue,
+      suffix: '%',
+      placeholder: '6.5',
+    },
+    {
+      label: 'Kelly factor',
+      helper: 'Número de Kelly que quieres aplicar.',
+      value: kellyValue,
+      onChange: setKellyValue,
+      placeholder: '0.5',
+    },
+    {
+      label: 'Límite de mercado',
+      helper: 'Tope máximo que permite la casa.',
+      value: marketLimitValue,
+      onChange: setMarketLimitValue,
+      prefix: 'EUR',
+      placeholder: '10',
+    },
+  ] as const;
+
   return (
     <div
-      className="min-h-screen hero-startup-bg startup-fixed-bg overflow-x-hidden text-white"
+      className="relative min-h-screen cara-b-landing-bg overflow-x-hidden text-white"
       style={{
         fontFamily: "'Sora', sans-serif",
-        backgroundImage: "url('/landing2.jpg')",
-        backgroundPosition: 'center',
-        backgroundSize: 'cover',
-        backgroundRepeat: 'no-repeat',
       }}
     >
       <section className="relative overflow-hidden bg-white pb-18 pt-28 text-slate-900 sm:pb-24 sm:pt-32 section-padding">
@@ -101,7 +157,7 @@ export default function GrupoApuestasLandingPage({
 
           <PageReveal delay={260}>
             <p className="mx-auto mt-8 max-w-3xl text-center text-base text-slate-600 sm:text-xl">
-              Apuestas de Valor buscadas con nuestra metodología, entregadas directo a tu Telegram cada día.
+              No somos tipsters, ni vendemos pronósticos. Compartimos apuestas de valor esperado positivo (EV+) con una gestión de stake recomendada. Nuestra metodología se basa en el análisis estadístico y la búsqueda de oportunidades de apuesta que ofrezcan un retorno esperado positivo a largo plazo.
             </p>
           </PageReveal>
 
@@ -129,11 +185,11 @@ export default function GrupoApuestasLandingPage({
             <div className="mt-12 grid gap-3 text-sm text-slate-700 sm:grid-cols-3 sm:text-base">
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <Flame className="h-5 w-5 shrink-0 text-orange-600" />
-                <span>Picks diarios con contexto</span>
+                 <span>Informamos del EV+ por apuesta</span>
               </div>
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <TrendingUp className="h-5 w-5 shrink-0 text-emerald-600" />
-                <span>Gestión por stake</span>
+                 <span>Gestión por stake</span>
               </div>
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <img
@@ -155,26 +211,117 @@ export default function GrupoApuestasLandingPage({
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="mr-auto max-w-5xl text-left">
             <p className="mb-8 text-4xl font-normal tracking-tight sm:text-6xl" style={{ fontFamily: "'Sora', sans-serif" }}>
-              Instrucciones para seguir <span className="font-bold tracking-tight">el plan diario</span>.
+              Calcula tu stake recomendado para nuestras <span className="font-bold tracking-tight">apuestas de valor</span>
             </p>
             <p className="text-base text-white/85 sm:text-xl" style={{ fontFamily: "'Sora', sans-serif" }}>
-              Sigue estos pasos de forma ordenada para ejecutar mejor, evitar errores comunes y mantener constancia.
+                Introduce el bank, la cuota decimal, el porcentaje de EV, tu número de Kelly y el límite de mercado. La salida se ajusta al tope disponible.
             </p>
           </div>
 
-          <div className="mt-8 grid gap-5 sm:mt-12 md:grid-cols-3 md:[&>*:nth-child(2)]:translate-y-6 md:[&>*:nth-child(3)]:translate-y-12">
-            {instructionsToFollow.map(({ title, icon: Icon }, index) => (
-              <ScrollReveal
-                key={title}
-                delay={index * 120}
-                className="flex items-center gap-3 rounded-3xl border border-slate-300/90 bg-white/88 p-4 shadow-[0_10px_28px_rgba(15,23,42,0.10)]"
-              >
-                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700">
-                  <Icon className="h-5 w-5" />
+          <div className="mt-10 mx-auto w-full max-w-7xl space-y-6">
+
+            <ScrollReveal
+              delay={120}
+              className="rounded-[2rem] border border-slate-200/80 bg-white p-5 text-slate-900 shadow-[0_18px_50px_rgba(15,23,42,0.16)] sm:p-6"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  
+                  <h3 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl" style={{ fontFamily: "'Sora', sans-serif" }}>
+                    Calcula tu stake
+                  </h3>
                 </div>
-                <h3 className="min-w-0 flex-1 text-base font-semibold leading-tight text-slate-900 sm:text-lg">{index + 1}. {title}</h3>
-              </ScrollReveal>
-            ))}
+              </div>
+
+              <div className="mt-6 overflow-hidden rounded-[1.6rem] border border-slate-200 bg-slate-50/80">
+                <div className="grid gap-3 p-3 lg:hidden">
+                  {calculatorFields.map((field) => (
+                    <div key={`mobile-${field.label}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <p className="text-sm font-semibold text-slate-900">{field.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">{field.helper}</p>
+                      <div className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        <span>{'prefix' in field && field.prefix ? field.prefix : 'Dato'}</span>
+                        {'suffix' in field && field.suffix ? <span>{field.suffix}</span> : null}
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.target.value)}
+                        placeholder={field.placeholder}
+                        className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold text-slate-900 outline-none transition placeholder:text-slate-300 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                  ))}
+
+                  <div className="rounded-2xl border border-blue-900 bg-blue-950 p-4 text-white">
+                    <p className="text-sm font-semibold text-blue-100">Resultado</p>
+                    <p className="mt-1 text-xs leading-5 text-blue-200/85">Muestra el stake final de la operación.</p>
+                    <div className="mt-3 rounded-xl border border-blue-300/25 bg-white/10 px-4 py-3 text-base font-semibold text-white">
+                      {formatMoney(stakeFinal)}
+                    </div>
+                    <p className="mt-2 text-sm text-blue-100/90">{formatNumber(stakePercent)}% del bank</p>
+                  </div>
+                </div>
+
+                <div className="hidden lg:grid lg:grid-cols-6">
+                  {calculatorFields.map((field, index) => (
+                    <div
+                      key={`head-${field.label}`}
+                      className={`border-b border-slate-200 bg-white/55 px-4 py-4 ${index < calculatorFields.length ? 'border-r' : ''}`}
+                    >
+                      <p className="text-sm font-semibold text-slate-900">{field.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">{field.helper}</p>
+                    </div>
+                  ))}
+                  <div className="border-b border-blue-900 bg-blue-950 px-4 py-4 text-white">
+                    <p className="text-sm font-semibold text-blue-100">Resultado</p>
+                    <p className="mt-1 text-xs leading-5 text-blue-200/85">
+                      Muestra el stake final de la operación.
+                    </p>
+                  </div>
+
+                  {calculatorFields.map((field, index) => (
+                    <div
+                      key={`input-${field.label}`}
+                      className={`bg-white px-4 py-4 ${index < calculatorFields.length ? 'border-r border-slate-200' : ''}`}
+                    >
+                      <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        <span>{'prefix' in field && field.prefix ? field.prefix : 'Dato'}</span>
+                        {'suffix' in field && field.suffix ? <span>{field.suffix}</span> : null}
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.target.value)}
+                        placeholder={field.placeholder}
+                        className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold text-slate-900 outline-none transition placeholder:text-slate-300 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                  ))}
+                  <div className="bg-blue-950 px-4 py-4 text-white">
+                    <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-blue-200/85">
+                      <span>Resultado</span>
+                      <Target className="h-3.5 w-3.5 text-blue-200/85" />
+                    </div>
+                    <div className="mt-3 rounded-xl border border-blue-300/25 bg-white/10 px-4 py-3 text-base font-semibold text-white">
+                      {formatMoney(stakeFinal)}
+                    </div>
+                    <p className="mt-2 text-sm text-blue-100/90">
+                      {formatNumber(stakePercent)}% del bank
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-slate-600">
+                  stakeFinal = min(bank * (EV / (cuota - 1)) * Kelly, límite de mercado)
+                </p>
+                
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>

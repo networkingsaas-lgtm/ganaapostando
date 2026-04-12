@@ -98,6 +98,33 @@
   background: var(--grupoapuestas-hero-overlay);
 }
 
+.cara-b-landing-bg {
+  isolation: isolate;
+  position: relative;
+  background-color: #041a78;
+}
+
+.cara-b-landing-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: #041a78;
+  background-image: url('/landing2.jpg');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+@media (max-width: 1023px) {
+  .cara-b-landing-bg::before {
+    background-position: center top;
+    background-size: cover;
+  }
+}
+
 .startup-fixed-bg {
   background-attachment: fixed;
   background-size: cover;

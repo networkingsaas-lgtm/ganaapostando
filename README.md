@@ -76,3 +76,10 @@ Notas:
 - La reproduccion de video depende del flujo firmado del backend tras comprobar acceso; no del catalogo publico.
 - `/auth/register` puede requerir confirmacion por email y no garantiza login inmediato.
 - El CTA de precios sigue apuntando a un checkout de Stripe de prueba hasta que se sustituya por el flujo de produccion.
+
+## Nota Tecnica: Fondo CaraB En Movil
+
+- Solucion aplicada: evitar `background-attachment: fixed` en movil para prevenir zoom excesivo y comportamiento inestable.
+- Implementacion estable: usar una capa `::before` fija en `.cara-b-landing-bg` y dejar el contenido por encima.
+- Referencia 1: `src/features/cara-b/CaraBLandingPage.tsx`
+- Referencia 2: `src/styles/globals.css`
