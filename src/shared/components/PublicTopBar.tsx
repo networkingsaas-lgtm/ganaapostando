@@ -265,11 +265,11 @@ export default function PublicTopBar({
             </button>
             <button
               type="button"
-              onClick={() => handleMobileNavigate('/grupoapuestas')}
-              className={getSidebarButtonClassName('/grupoapuestas')}
-              aria-current={isSidebarRouteActive('/grupoapuestas') ? 'page' : undefined}
+              onClick={() => handleMobileNavigate('/formacion')}
+              className={getSidebarButtonClassName('/formacion')}
+              aria-current={isSidebarRouteActive('/formacion') ? 'page' : undefined}
             >
-              Grupo Apuestas
+              Formación
             </button>
             <button
               type="button"

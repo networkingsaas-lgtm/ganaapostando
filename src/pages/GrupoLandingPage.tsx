@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { ArrowRight, Check, Flame, Target, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import PageReveal from '../../shared/components/PageReveal';
-import ScrollReveal from '../../shared/components/ScrollReveal';
+import PageReveal from '../shared/components/PageReveal';
+import ScrollReveal from '../shared/components/ScrollReveal';
 
 interface Props {
   onRegistrarse: () => void;
@@ -57,7 +57,7 @@ const parseNumericInput = (value: string) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-export default function GrupoApuestasLandingPage({
+export default function GrupoLandingPage({
   onRegistrarse,
   onVerResultados,
 }: Props) {
@@ -222,7 +222,7 @@ export default function GrupoApuestasLandingPage({
 
             <ScrollReveal
               delay={120}
-              className="rounded-[2rem] border border-slate-200/80 bg-white p-5 text-slate-900 shadow-[0_18px_50px_rgba(15,23,42,0.16)] sm:p-6"
+              className="rounded-[2rem] border border-white/45 bg-white/78 p-5 text-slate-900 shadow-[0_18px_50px_rgba(15,23,42,0.16)] backdrop-blur-md sm:p-6"
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -233,10 +233,10 @@ export default function GrupoApuestasLandingPage({
                 </div>
               </div>
 
-              <div className="mt-6 overflow-hidden rounded-[1.6rem] border border-slate-200 bg-slate-50/80">
+              <div className="mt-6 overflow-hidden rounded-[1.6rem] border border-white/60 bg-white/45">
                 <div className="grid gap-3 p-3 lg:hidden">
                   {calculatorFields.map((field) => (
-                    <div key={`mobile-${field.label}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div key={`mobile-${field.label}`} className="rounded-2xl border border-white/70 bg-white/75 p-4">
                       <p className="text-sm font-semibold text-slate-900">{field.label}</p>
                       <p className="mt-1 text-xs leading-5 text-slate-500">{field.helper}</p>
                       <div className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
@@ -268,7 +268,7 @@ export default function GrupoApuestasLandingPage({
                   {calculatorFields.map((field, index) => (
                     <div
                       key={`head-${field.label}`}
-                      className={`border-b border-slate-200 bg-white/55 px-4 py-4 ${index < calculatorFields.length ? 'border-r' : ''}`}
+                       className={`border-b border-slate-200 bg-white/45 px-4 py-4 ${index < calculatorFields.length ? 'border-r' : ''}`}
                     >
                       <p className="text-sm font-semibold text-slate-900">{field.label}</p>
                       <p className="mt-1 text-xs leading-5 text-slate-500">{field.helper}</p>
@@ -284,7 +284,7 @@ export default function GrupoApuestasLandingPage({
                   {calculatorFields.map((field, index) => (
                     <div
                       key={`input-${field.label}`}
-                      className={`bg-white px-4 py-4 ${index < calculatorFields.length ? 'border-r border-slate-200' : ''}`}
+                       className={`bg-white/68 px-4 py-4 ${index < calculatorFields.length ? 'border-r border-slate-200' : ''}`}
                     >
                       <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                         <span>{'prefix' in field && field.prefix ? field.prefix : 'Dato'}</span>

@@ -56,7 +56,7 @@ const getInviteStatusLabel = (status: TelegramInviteStatus | null) => {
   }
 
   if (status === 'invited') {
-    return 'Invitacion enviada';
+    return 'Invitación enviada';
   }
 
   if (status === 'removed') {
@@ -76,15 +76,15 @@ const getInviteStatusLabel = (status: TelegramInviteStatus | null) => {
 
 const getPrimaryMessage = (status: TelegramMeResponse | null) => {
   if (!status) {
-    return 'No hemos podido cargar tu estado de Telegram VIP todavia.';
+    return 'No hemos podido cargar tu estado de Telegram VIP todavía.';
   }
 
   if (!status.activeSubscription) {
-    return 'Tu cuenta de Telegram puede vincularse ahora, pero solo recibiras acceso al grupo cuando actives una suscripcion.';
+    return 'Tu cuenta de Telegram puede vincularse ahora, pero solo recibirás acceso al grupo cuando actives una suscripción.';
   }
 
   if (!status.telegram) {
-    return 'Conecta tu Telegram para que el bot te envie la invitacion al grupo privado.';
+    return 'Conecta tu Telegram para que el bot te envíe la invitación al grupo privado.';
   }
 
   if (status.telegram.inviteStatus === 'joined') {
@@ -92,10 +92,10 @@ const getPrimaryMessage = (status: TelegramMeResponse | null) => {
   }
 
   if (status.telegram.inviteStatus === 'removed' || status.telegram.inviteStatus === 'left') {
-    return 'Tu acceso al grupo no esta activo actualmente.';
+    return 'Tu acceso al grupo no está activo actualmente.';
   }
 
-  return 'Tu Telegram ya esta vinculado. Revisa el mensaje directo del bot.';
+  return 'Tu Telegram ya está vinculado. Revisa el mensaje directo del bot.';
 };
 
 const getShouldUseDirectNavigation = () => (
@@ -130,7 +130,7 @@ const TELEGRAM_PLAN_DEFAULTS: TelegramPricingPlanDefault[] = [
     name: 'Plan Mensual',
     priceLabel: '15€',
     periodLabel: '/mes',
-    features: ['Picks diarios en Telegram', 'Gestion de stake recomendada', 'Acceso inmediato al grupo'],
+    features: ['Picks diarios en Telegram', 'Gestión de stake recomendada', 'Acceso inmediato al grupo'],
     isHighlight: true,
   },
   {
@@ -146,7 +146,7 @@ const TELEGRAM_PLAN_DEFAULTS: TelegramPricingPlanDefault[] = [
     name: 'Plan Anual',
     priceLabel: '129€',
     periodLabel: '/12 meses',
-    features: ['Mejor precio por mes', 'Acceso completo todo el ano', 'Prioridad en nuevas mejoras'],
+    features: ['Mejor precio por mes', 'Acceso completo todo el año', 'Prioridad en nuevas mejoras'],
     isHighlight: false,
   },
 ];
@@ -279,7 +279,7 @@ export const useGrupoApuestasLogic = () => {
   const loadStatus = useCallback(async (isManualRefresh = false) => {
     if (!accessToken) {
       setStatus(null);
-      setStatusError('No se ha encontrado una sesión valida para consultar Telegram VIP.');
+      setStatusError('No se ha encontrado una sesión válida para consultar Telegram VIP.');
       setIsLoading(false);
       setIsRefreshing(false);
       return;
@@ -319,7 +319,7 @@ export const useGrupoApuestasLogic = () => {
 
     if (!isAuthenticated) {
       setStatus(null);
-      setStatusError('Necesitas iniciar sesión para gestionar tu vinculacion con Telegram.');
+      setStatusError('Necesitas iniciar sesión para gestionar tu vinculación con Telegram.');
       setIsLoading(false);
       return;
     }
@@ -361,7 +361,7 @@ export const useGrupoApuestasLogic = () => {
     setActionNotice(null);
 
     if (!hasActiveSubscription) {
-      setActionError('No hay una suscripcion activa para cancelar en este momento.');
+      setActionError('No hay una suscripción activa para cancelar en este momento.');
       return;
     }
 
@@ -369,12 +369,12 @@ export const useGrupoApuestasLogic = () => {
 
     try {
       await cancelSubscription();
-      setActionNotice('Suscripcion cancelada. Estamos actualizando el estado de tu acceso.');
+      setActionNotice('Suscripción cancelada. Estamos actualizando el estado de tu acceso.');
       refreshDashboardCatalog();
       await loadStatus(true);
     } catch (error) {
       setActionError(
-        getFriendlyRequestErrorMessage(error, 'No se pudo cancelar la suscripcion.'),
+        getFriendlyRequestErrorMessage(error, 'No se pudo cancelar la suscripción.'),
       );
     } finally {
       setIsCancellingSubscription(false);
@@ -386,12 +386,12 @@ export const useGrupoApuestasLogic = () => {
     setActionNotice(null);
 
     if (!hasActiveSubscription) {
-      setActionError('No hay una suscripcion activa para reactivar en este momento.');
+      setActionError('No hay una suscripción activa para reactivar en este momento.');
       return;
     }
 
     if (!isSubscriptionCancelAtPeriodEnd) {
-      setActionNotice('Tu suscripcion ya esta activa y sin baja programada.');
+      setActionNotice('Tu suscripción ya está activa y sin baja programada.');
       return;
     }
 
@@ -399,12 +399,12 @@ export const useGrupoApuestasLogic = () => {
 
     try {
       await reactivateSubscription();
-      setActionNotice('Suscripcion reactivada. Estamos actualizando el estado de tu acceso.');
+      setActionNotice('Suscripción reactivada. Estamos actualizando el estado de tu acceso.');
       refreshDashboardCatalog();
       await loadStatus(true);
     } catch (error) {
       setActionError(
-        getFriendlyRequestErrorMessage(error, 'No se pudo reactivar la suscripcion.'),
+        getFriendlyRequestErrorMessage(error, 'No se pudo reactivar la suscripción.'),
       );
     } finally {
       setIsReactivatingSubscription(false);
@@ -413,7 +413,7 @@ export const useGrupoApuestasLogic = () => {
 
   const handleStartSubscriptionCheckout = useCallback(async (planKey: TelegramPricingPlanKey) => {
     if (hasActiveSubscription) {
-      setActionError('Ya tienes una suscripcion activa. Cancela la cuota actual para cambiar de plan.');
+      setActionError('Ya tienes una suscripción activa. Cancela la cuota actual para cambiar de plan.');
       return;
     }
 
@@ -424,7 +424,7 @@ export const useGrupoApuestasLogic = () => {
     const targetProductId = targetPlan?.productId ?? null;
 
     if (!targetProductId) {
-      setActionError('No hemos encontrado el producto de suscripcion para iniciar el checkout.');
+      setActionError('No hemos encontrado el producto de suscripción para iniciar el checkout.');
       return;
     }
 
@@ -452,7 +452,7 @@ export const useGrupoApuestasLogic = () => {
       setActionError(
         error instanceof Error
           ? error.message
-          : 'No se pudo iniciar el checkout de la suscripcion.',
+          : 'No se pudo iniciar el checkout de la suscripción.',
       );
       setActiveCheckoutPlanKey(null);
     }
@@ -473,7 +473,7 @@ export const useGrupoApuestasLogic = () => {
       return;
     }
 
-    setActionNotice('Pago recibido. Actualizando el estado de tu suscripcion...');
+    setActionNotice('Pago recibido. Actualizando el estado de tu suscripción...');
     setActiveCheckoutPlanKey(null);
     refreshDashboardCatalog();
     void loadStatus(true);
@@ -482,7 +482,7 @@ export const useGrupoApuestasLogic = () => {
 
   const handleOpenBot = useCallback(async () => {
     if (!accessToken) {
-      setActionError('No se ha encontrado una sesión valida para abrir el bot.');
+      setActionError('No se ha encontrado una sesión válida para abrir el bot.');
       return;
     }
 
@@ -494,7 +494,7 @@ export const useGrupoApuestasLogic = () => {
       const payload = await createTelegramLinkToken(accessToken);
 
       if (!payload.botStartUrl) {
-        setActionError('El bot de Telegram no esta configurado todavia. Intentalo de nuevo mas tarde.');
+        setActionError('El bot de Telegram no está configurado todavía. Inténtalo de nuevo más tarde.');
         return;
       }
 
@@ -510,7 +510,7 @@ export const useGrupoApuestasLogic = () => {
       setActionError(
         getFriendlyRequestErrorMessage(
           error,
-          'No se pudo iniciar la vinculacion con Telegram.',
+          'No se pudo iniciar la vinculación con Telegram.',
         ),
       );
     } finally {
@@ -537,7 +537,7 @@ export const useGrupoApuestasLogic = () => {
     linkedTelegramLabel: status?.telegram
       ? status.telegram.telegramUsername
         ? `@${status.telegram.telegramUsername}`
-        : 'Conectado sin username publico'
+        : 'Conectado sin username público'
       : 'No conectado',
     inviteStatusLabel: getInviteStatusLabel(status?.telegram?.inviteStatus ?? null),
     activeSubscriptionLabel: status?.activeSubscription ? 'Activa' : 'Inactiva',

@@ -284,7 +284,7 @@ const GrupoApuestasView: FC<Props> = ({
             >
               {plan.isHighlight ? (
                 <p className="inline-flex w-fit rounded-full border border-blue-200 bg-blue-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-blue-700">
-                  Mas elegido
+                  Más elegido
                 </p>
               ) : null}
 
@@ -326,7 +326,7 @@ const GrupoApuestasView: FC<Props> = ({
                 {hasActiveSubscription
                   ? isPlanActiveSubscription
                     ? isSubscriptionCancelAtPeriodEnd
-                      ? (isReactivatingSubscription ? 'Reactivando...' : 'Reactivar suscripcion')
+                      ? (isReactivatingSubscription ? 'Reactivando...' : 'Reactivar suscripción')
                       : (isCancellingSubscription ? 'Dando de baja...' : 'Darse de baja')
                     : 'No contratado'
                   : isPlanCheckoutLoading
@@ -456,7 +456,7 @@ const GrupoApuestasView: FC<Props> = ({
           <div className="absolute left-0 top-1/2 z-20 h-28 w-28 -translate-y-1/2 overflow-hidden rounded-full bg-white shadow-[0_12px_28px_rgba(15,23,42,0.24)] sm:h-40 sm:w-40 lg:h-52 lg:w-52">
             <img
               src="/logo.png"
-              alt="Logo de El Metodo"
+              alt="Logo de El Método"
               className="h-full w-full object-cover"
               loading="lazy"
             />
@@ -512,13 +512,13 @@ const GrupoApuestasView: FC<Props> = ({
 
           {hasActiveSubscription && isSubscriptionCancelAtPeriodEnd && !statusError && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Tu suscripcion esta activa con baja programada al final del periodo. Puedes reactivarla sin crear una nueva.
+              Tu suscripción está activa con baja programada al final del período. Puedes reactivarla sin crear una nueva.
             </div>
           )}
 
           {hasActiveSubscription && !activeSubscriptionPlanKey && !statusError && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Detectamos una suscripcion activa, pero el productId recibido no coincide con ningun plan configurado.
+              Detectamos una suscripción activa, pero el productId recibido no coincide con ningún plan configurado.
             </div>
           )}
 

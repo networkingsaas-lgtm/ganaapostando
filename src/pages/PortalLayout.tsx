@@ -101,12 +101,12 @@ export default function PortalLayout({ onVolver }: Props) {
   };
 
   return (
-    <div className={`min-h-screen overflow-hidden ${portalSurfaceClass}`}>
+    <div className={`h-dvh overflow-hidden ${portalSurfaceClass}`}>
       {!usesLightSurface && (
         <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.14),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(91,194,255,0.18),_transparent_24%)]" />
       )}
       <DashboardCatalogProvider>
-        <div className="relative mx-auto h-screen max-w-[1600px]">
+        <div className="relative mx-auto h-full max-w-[1600px]">
           <PortalSidebar
             sidebarOpen={sidebarOpen}
             currentSubRoute={currentSubRoute}
@@ -135,14 +135,14 @@ export default function PortalLayout({ onVolver }: Props) {
             }}
           />
 
-          <main
-            ref={mainScrollRef}
-            className={
-              isMapView
-                ? 'h-screen min-w-0 overflow-y-auto p-0 pb-28 lg:pb-0 lg:pl-[360px] xl:pl-[400px]'
-                : 'h-screen min-w-0 overflow-y-auto px-4 py-5 pb-28 sm:px-6 sm:py-6 lg:py-8 lg:pr-10 lg:pl-[400px] xl:pl-[440px]'
-            }
-          >
+            <main
+              ref={mainScrollRef}
+              className={
+                isMapView
+                  ? 'h-full min-w-0 overflow-y-auto overscroll-y-contain p-0 pb-28 lg:pb-0 lg:pl-[360px] xl:pl-[400px]'
+                  : 'h-full min-w-0 overflow-y-auto overscroll-y-contain px-4 py-5 pb-28 sm:px-6 sm:py-6 lg:py-8 lg:pr-10 lg:pl-[400px] xl:pl-[440px]'
+              }
+            >
             <Routes>
               <Route index element={<Navigate to="mapa" replace />} />
               <Route path="mapa" element={<RoadmapPage />} />
